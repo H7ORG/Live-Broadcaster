@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:BorderContainer
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+	xmlns:s="library://ns.adobe.com/flex/spark" 
+	xmlns:mx="library://ns.adobe.com/flex/halo"
+	creationComplete="init()"
+	cornerRadius="4"
+	height="2"
+	borderVisible="false"
+	show="onShow()"
+	hide="onHide()"
+	backgroundColor="{ bgColor }"
+	>
+	
+	<fx:Declarations>
+		
+		<fx:Boolean id="useCornerRadius">true</fx:Boolean>
+		<fx:uint id="barColor" />
+		<fx:uint id="bgColor" />
+		
+		<fx:Number id="duration">500</fx:Number>
+		<fx:Boolean id="playing" />
+		
+		<s:Sequence id="animation" repeatCount="0">
+			<s:Animate target="{greenBar}" duration="0">
+				<s:motionPaths>
+					<s:SimpleMotionPath property="width" valueTo="0" />
+				</s:motionPaths>
+			</s:Animate>
+			<s:Animate target="{whiteBar}" duration="0">
+				<s:motionPaths>
+					<s:SimpleMotionPath property="width" valueTo="0" />
+				</s:motionPaths>
+			</s:Animate>
+			<s:Animate target="{greenBar}" duration="{duration}">
+				<s:motionPaths>
+					<s:SimpleMotionPath property="width" valueFrom="0" valueTo="{this.width-2}" />
+				</s:motionPaths>
+			</s:Animate>
+			<s:Animate target="{whiteBar}" duration="{duration}">
+				<s:motionPaths>
+					<s:SimpleMotionPath property="width" valueFrom="0" valueTo="{this.width-2}" />
+				</s:motionPaths>
+			</s:Animate>
+		</s:Sequence>
+		
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+		
+		private function onShow():void {
+			
+			play();
+			
+		}
+		
+		private function onHide():void {
+			
+			stop();
+			
+		}
+		
+		protected function init():void {
+			
+			greenBar.width = 0;
+			whiteBar.width = 0;
+			
+		}
+		
+		public function play():void {
+			
+			if ( !playing ) {
+				
+				animation.play();
+				playing = true;
+				
+			}
+			
+		}
+		
+		public function stop():void {
+			
+			animation.stop();
+			playing = false;
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+	<s:BorderContainer width="{ this.width }" height="{ this.height }" borderVisible="false" styleName="progressGreen" id="greenBar" cornerRadius="{ int( useCornerRadius ) * 5 }" backgroundColor="{ barColor }" />
+	<s:BorderContainer width="{ this.width }" height="{ this.height }" borderVisible="false" styleName="progressWhite" id="whiteBar" cornerRadius="{ int( useCornerRadius ) * 5 }" backgroundColor="{ bgColor }" />
+	
+</s:BorderContainer>

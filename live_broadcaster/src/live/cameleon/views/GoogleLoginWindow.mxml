@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<views:PopupWindow
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+    xmlns:view="view.*"
+	width="900"
+	height="630"
+	minWidth="500"
+	minHeight="630"
+	destroyOnClose="true"
+	title="Google Login"
+	resize="onResize()" xmlns:views="live.cameleon.views.*"
+	>
+	
+	<fx:Declarations>
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+		
+		import com.adobe.protocols.oauth2.OAuth2;
+		import com.adobe.protocols.oauth2.event.GetAccessTokenEvent;
+		import com.adobe.protocols.oauth2.grant.AuthorizationCodeGrant;
+		import com.adobe.protocols.oauth2.grant.IGrantType;
+		import com.adobe.protocols.oauth2.grant.ImplicitGrant;
+		import flash.display.DisplayObject;
+		import flash.events.Event;
+		import flash.events.LocationChangeEvent;
+		import flash.geom.Rectangle;
+		import flash.media.StageWebView;
+		import org.as3commons.logging.setup.LogSetupLevel;
+		import live.cameleon.system.Os;
+		import settings.API;
+		
+		private var oauth2:OAuth2;
+		private var stageWebView:StageWebView;
+		
+		public var success:Boolean;
+		public var accessToken:String;
+		public var refreshToken:String;
+		public var expiresIn:Number;
+		public var response:Object;
+		public var scope:String;
+		
+		override public function show(prnt:DisplayObject):void 	{
+			
+			super.show(prnt);
+			prnt["enabled"] = false;
+			this.destroyOnClose = true;
+			
+			stageWebView = new StageWebView( Os.isMac );
+			stageWebView.stage = this.stage;
+			stageWebView.viewPort = new Rectangle( 0, 30, this.width, this.height - 30 );
+			stageWebView.addEventListener( Event.COMPLETE, webViewComplete );
+			stageWebView.addEventListener( LocationChangeEvent.LOCATION_CHANGE, webViewLocationChange );
+			
+			continueAuth();
+			
+		}
+		
+		private function webViewLocationChange( e:LocationChangeEvent ):void {
+			
+			addressInput.text = e.location;
+			
+		}
+		
+		override protected function closeWindow( e:Event ):void {
+			
+			parentObject["enabled"] = true;
+			this.removeAllElements();
+			super.closeWindow(e);
+			
+		}
+		
+		protected function continueAuth():void {
+			
+			oauth2 = new OAuth2( API.I.GOOGLE_ENDPOINT, API.I.GOOGLE_TOKEN_ENDPOINT );
+			
+			var grant:IGrantType = new AuthorizationCodeGrant(
+										stageWebView,
+										API.I.GOOGLE_CLIENT_ID,
+										API.I.GOOGLE_CLIENT_SECRET,
+										API.I.GOOGLE_REDIRECT,
+										API.I.GOOGLE_SCOPE
+										);
+			
+			oauth2.addEventListener( GetAccessTokenEvent.TYPE, accessTokenResult );
+			oauth2.getAccessToken( grant );
+			
+		}
+		
+		protected function accessTokenResult( e:GetAccessTokenEvent ):void {
+			
+			oauth2.removeEventListener( GetAccessTokenEvent.TYPE, accessTokenResult );
+			e.parseAccessTokenResponse( e.response );
+			trace( e.accessToken, e.errorCode, e.errorMessage, e.expiresIn, e.refreshToken, e.response, e.tokenType );
+			success = true;
+			var a:Array = stageWebView.title.split(" ")[1].split("&")[0].split("code=");
+			//accessToken = String( a[1] );
+			accessToken = String( e.accessToken );
+			refreshToken = e.refreshToken;
+			expiresIn = e.expiresIn;
+			response = e.response;
+			scope = e.scope;
+			stageWebView.dispose();
+			this.close();
+			
+		}
+		
+		protected function onResize():void {
+			
+			if ( stageWebView ) {
+				
+				stageWebView.viewPort = new Rectangle( 0, 30, this.width, this.height - 30 );
+				
+			}
+			
+		}
+		
+		protected function webViewComplete( e:Event ):void {
+			
+			this.title = stageWebView.title;
+			//trace( 'webViewComplete', stageWebView.location );
+			//trace( 'webViewTitle', stageWebView.title );
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+	<s:HGroup width="100%" height="30" gap="0">
+		<s:BorderContainer width="80" height="100%" borderVisible="false" backgroundColor="#197f45">
+			<s:layout>
+				<s:HorizontalLayout paddingLeft="10" verticalAlign="middle" gap="10" />
+			</s:layout>
+			<s:BitmapImage source='@Embed(source="../../../../assets/icon_lock.png")' scaleX=".5" scaleY=".5" />
+			<s:Label color="#ffffff" text="Secure" fontWeight="bold" />
+		</s:BorderContainer>
+		<s:TextInput width="100%" height="100%" editable="false" id="addressInput" text="https://" contentBackgroundColor="#dddddd" color="#333333" selectable="false" />
+	</s:HGroup>
+	
+	
+</views:PopupWindow>

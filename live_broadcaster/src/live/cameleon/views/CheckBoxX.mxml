@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:HGroup
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	verticalAlign="middle"
+	mouseOver="currentState='hover'"
+	mouseOut="currentState='normal'"
+	click="toggle()"
+	>
+	
+	<fx:Declarations>
+		<fx:String id="label" />
+		<fx:Boolean id="selected" />
+	</fx:Declarations>
+	
+	<s:states>
+		<mx:State name="normal" />
+		<mx:State name="hover" />
+	</s:states>
+	
+	<fx:Metadata> 
+        [Event(name="change", type="flash.events.Event")] 
+    </fx:Metadata> 
+	
+	<fx:Script>
+		<![CDATA[
+		
+		import flash.events.Event;
+		
+		private function toggle():void {
+			
+			selected = !selected;
+			
+			this.dispatchEvent( new Event( Event.CHANGE ) );
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+	<s:Group>
+		
+		<s:Ellipse width="14" height="14">
+			<s:stroke>
+				<mx:SolidColorStroke color="#ADB1BC" weight="1" />
+			</s:stroke>
+			<s:fill>
+				<mx:SolidColor color="#ADB1BC" alpha.hover=".5" alpha.normal="{ ( selected ) ? 1 : 0 }" />
+			</s:fill>
+		</s:Ellipse>
+		
+		<s:BitmapImage smooth="true" scaleX=".5" scaleY=".5" source='@Embed(source="../../../../assets/icon_check.png")' horizontalCenter="-1" verticalCenter="-1" visible="{ selected }" />
+		
+	</s:Group>
+	
+	<s:Label text="{ label }" />
+	
+</s:HGroup>

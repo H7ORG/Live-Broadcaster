@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Put this in build.properties file with appropriate values
+FLEX_HOME_WIN = win/path/to/flex/sdk
+FLEX_HOME_MAC = mac/path/to/flex/sdk
+-->
+<project default="none" name="Live Broadcaster Build Script" basedir=".">
+	
+	<property file="../build.properties"/>
+	
+	<!-- Conditionals -->
+	
+	
+		
+	<condition property="FLEX_HOME" value="${FLEX_HOME_WIN}">
+		<os family="windows" />
+	</condition>
+	<condition property="FLEX_HOME" value="${FLEX_HOME_MAC}">
+		<os family="mac" />
+	</condition>
+	
+	<condition property="OS_PATH" value="win">
+		<os family="windows" />
+	</condition>
+	<condition property="OS_PATH" value="mac">
+		<os family="mac" />
+	</condition>
+	
+	<condition property="APP_DESCRIPTOR_EXTENSION" value="">
+		<os family="windows" />
+	</condition>
+	<condition property="APP_DESCRIPTOR_EXTENSION" value=".app">
+		<os family="mac" />
+	</condition>
+	
+	<condition property="WINDOWS">
+		<os family="windows" />
+	</condition>
+	<condition property="MAC">
+		<os family="mac" />
+	</condition>
+	
+	
+	<!-- Properties -->
+	
+	
+	
+	<property name="ADL" value="${FLEX_HOME}/bin/adl"/> 
+	<property name="ADT.JAR" value="${FLEX_HOME}/lib/adt.jar"/>
+	<property name="MXML" value="${FLEX_HOME}/bin/mxmlc"/>
+	<property name="TOOLS" value="../builds/tools"/>
+	<property name="ISCC" value="${TOOLS}/iscc/iscc.exe"/>
+	<property name="SWFZIP" value="${TOOLS}/zlib2lzma.jar"/>
+	<!-- Next one should be installed from http://s.sudre.free.fr/Software/Packages/about.html -->
+	<property name="PACKAGER" value="/usr/local/bin/packagesbuild"/>
+	<property name="PRODUCTSIGN" value="productsign"/>
+
+	<property name="APP_NAME" value="Live Broadcaster"/> 
+	<property name="APP_ROOT" value="bin-release"/>
+	<property name="APP_BINARY" value="lb.dat"/>
+	<property name="MODULE_BINARY" value="modules/LiveBroadcaster.module"/>
+	<property name="ASSETS" value="assets"/>
+	<property name="SOURCE" value="src"/>
+	<property name="AIR_NAME" value="${APP_NAME}"/>
+	<property name="STORETYPE" value="pkcs12"/>
+	<property name="PROVIDERNAME" value="Apple"/>
+	<property name="KEYSTORE" value="../builds/cert/SpycamDesktop.p12"/>
+	<property name="STOREPASS" value="SpycamIo12345"/>
+	<property name="DIST" value="../builds/dist/${OS_PATH}"/>
+	<property name="TEMPPKG" value="${DIST}/LiveBroadcasterSetupX.pkg"/>
+	<property name="FINALPKG" value="${DIST}/LiveBroadcasterSetup.pkg"/>
+	<property name="DOCUMENTCLASS" value="LiveBroadcaster.mxml"/>
+	<property name="SWF_VERSION" value="36"/>
+	
+	<!-- Taskdefs -->
+	
+	<taskdef resource="flexTasks.tasks" classpath="${FLEX_HOME}/ant/lib/flexTasks.jar"/>
+	
+	<taskdef resource="net/sf/antcontrib/antcontrib.properties">
+		<classpath>
+			<pathelement location="${TOOLS}/ant-contrib/ant-contrib-1.0b3.jar"/>
+		</classpath>
+	</taskdef>
+	
+	<!-- Subtasks -->
+	
+	<target name="setup.win" if="${WINDOWS}">
+		<echo message="OS: Windows" />
+		<property name="ICON_FILES" value="icons"/>
+		<property name="MODULE_FILES" value="modules"/>
+	</target>
+	
+	<target name="setup.mac" if="${MAC}">
+		<echo message="OS: Mac" />
+		<property name="ICON_FILES" value="icons"/>
+		<property name="MODULE_FILES" value="modules"/>
+	</target>
+	
+	<target name="clean" description="Deleting dist directory">
+		<!--<delete dir="${basedir}/${DIST}" />
+			<mkdir dir="${basedir}/${DIST}"/>-->
+	</target>
+	
+	<target name="package.air" depends="clean"> 
+		<copy file="${basedir}/${SOURCE}/${APP_DESCRIPTOR}" todir="${DIST}/${AIR_NAME}${APP_DESCRIPTOR_EXTENSION}" overwrite="true"/>
+		<replace file="${DIST}/${AIR_NAME}${APP_DESCRIPTOR_EXTENSION}/${APP_DESCRIPTOR}" token="[This value will be overwritten by Flash Builder in the output app.xml]" value="${APP_BINARY}"/>
+		<java jar="${ADT.JAR}" fork="true" failonerror="true"> 
+			<arg value="-package"/> 
+			<arg value="-tsa"/>
+			<arg value="none"/>  
+			<arg value="-storetype"/> 
+			<arg value="${STORETYPE}"/>
+			<arg value="-keystore"/> 
+			<arg value="${KEYSTORE}"/> 
+			<arg value="-storepass"/>
+			<arg value="${STOREPASS}"/>
+			<arg value="-target"/>
+			<arg value="bundle"/>
+			<arg value="${DIST}/${AIR_NAME}${APP_DESCRIPTOR_EXTENSION}"/>  
+			<arg value="${DIST}/${AIR_NAME}${APP_DESCRIPTOR_EXTENSION}/${APP_DESCRIPTOR}"/>
+			<arg value="-C"/>
+			<arg value="${APP_ROOT}"/>
+			<arg value="${APP_BINARY}"/> 
+			<arg value="${ICON_FILES}"/>
+			<arg value="${MODULE_FILES}"/>
+			<!--<arg value="${ASSETS}"/>-->
+		</java> 
+	</target>
+	
+	<target name="cleanup.mac" if="${MAC}">
+		<delete dir="${DIST}/${AIR_NAME}.app/Contents/Frameworks/Adobe AIR.framework/Resources/AdobeCP15.plugin" />
+		<delete dir="${DIST}/${AIR_NAME}.app/Contents/Frameworks/Adobe AIR.framework/Resources/Flash Player.plugin" />
+		<delete file="${DIST}/${AIR_NAME}.app/Contents/Frameworks/Adobe AIR.framework/Resources/Adobe AIR.vch" />
+		<delete file="${DIST}/${AIR_NAME}.app/Contents/Frameworks/Adobe AIR.framework/Resources/WebKit.dylib" />
+	</target>
+	
+	<target name="signall.mac" if="${MAC}">
+		<foreach param="calleeparam" list="Contents/Frameworks/Adobe AIR.framework/Versions/Current/Adobe AIR_64,Contents/Frameworks/Adobe AIR.framework/Versions/Current/Adobe AIR_64 Helper,Contents/Frameworks/Adobe AIR.framework,Contents/MacOS/${APP_NAME}," target="signmac"/>
+	</target>
+	
+	<target name="signmac" if="${MAC}">
+		<echo message="${calleeparam}"/>
+		<exec executable="codesign">
+			<arg value="-f"/>
+			<arg value="-v"/>
+			<arg value="-s"/>
+			<arg value="${CERT}"/>
+			<arg value="${DIST}/${AIR_NAME}.app/${calleeparam}"/>
+		</exec>
+	</target>
+	
+	<target name="packager.mac" if="${MAC}">
+		<exec executable="${PACKAGER}" failonerror="true">
+			<arg value="${basedir}/../builds/LiveBroadcaster.pkgproj"/>
+		</exec>
+	</target>
+	
+	<target name="signpackage.mac" if="${MAC}">
+		<exec executable="${PRODUCTSIGN}" failonerror="true">
+			<arg value="--sign"/>
+			<arg value="Developer ID Installer: YATKO LLC (XG4UMSAS7X)"/>
+			<arg value="${TEMPPKG}"/>
+			<arg value="${FINALPKG}"/>
+		</exec>
+		<delete file="${TEMPPKG}" />
+	</target>
+	
+	<target name="package.win" if="${WINDOWS}">
+		<exec executable="${basedir}/${ISCC}">
+			<arg value="/smysigntool=${basedir}\..\builds\tools\iscc\signtool.exe sign /f ${basedir}\..\builds\cert\Yatko.pfx /p Yatko6654. $f"/>
+			<arg value="${basedir}\..\builds\LiveBroadcaster.iss"/>
+		</exec>
+	</target>
+	
+	<target name="package" depends="clean, package.air, cleanup.mac, packager.mac, signpackage.mac, package.win" />
+	
+	<target name="info">
+		<echo message="Live Broadcaster Build Script" />
+		<echo message="(c) Yatko LLC, 2017" />
+	</target>
+	
+	<!-- Target tasks -->
+	
+	<target name="build" depends="compilemodule.release, compile.release, package" />
+	
+	<target name="compilemodule.release" depends="setup.win, setup.mac">
+		<property name="DEBUG" value="false"/>
+		<mxmlc file="${basedir}/${SOURCE}/LiveBroadcasterModule.mxml" output="${basedir}/${APP_ROOT}/${MODULE_BINARY}" keep-generated-actionscript="false" configname="air" failonerror="true" debug="${DEBUG}" swf-version="${SWF_VERSION}"> 
+			<load-config filename="${FLEX_HOME}/frameworks/flex-config.xml"/>
+			<load-config filename="${FLEX_HOME}/frameworks/air-config.xml"/>
+			<source-path path-element="${FLEX_HOME}/frameworks/libs"/>
+			<source-path path-element="${basedir}/${SOURCE}" />
+			<library-path dir="${FLEX_HOME}" append="true">
+				<include name="frameworks/libs"/>
+			</library-path>
+			<library-path dir="${FLEX_HOME}" append="true">
+				<include name="frameworks/libs/air"/>
+			</library-path>
+			<library-path dir="${basedir}/libs" append="true">
+				<include name="*.swc" />
+			</library-path>
+		</mxmlc>
+		<java jar="${SWFZIP}" fork="true" failonerror="true">
+			<arg value="-i" />
+			<arg value="${APP_ROOT}/${MODULE_BINARY}" />
+			<arg value="-o" />
+			<arg value="${APP_ROOT}/${MODULE_BINARY}" />
+		</java>
+	</target>
+	
+	<target name="compile.release" depends="setup.win, setup.mac">
+		<property name="APP_DESCRIPTOR" value="LiveBroadcaster-app.xml"/>
+		<property name="DEBUG" value="false"/>
+		<mxmlc file="${basedir}/${SOURCE}/${DOCUMENTCLASS}" output="${basedir}/${APP_ROOT}/${APP_BINARY}" keep-generated-actionscript="false" configname="air" failonerror="true" debug="${DEBUG}" swf-version="${SWF_VERSION}" keep-all-type-selectors="true"> 
+			<load-config filename="${FLEX_HOME}/frameworks/flex-config.xml"/>
+			<load-config filename="${FLEX_HOME}/frameworks/air-config.xml"/>
+			<source-path path-element="${FLEX_HOME}/frameworks/libs"/>
+			<source-path path-element="${basedir}/${SOURCE}" />
+			<library-path dir="${FLEX_HOME}" append="true">
+                <include name="frameworks/libs"/>
+            </library-path>
+            <library-path dir="${FLEX_HOME}" append="true">
+                <include name="frameworks/libs/air"/>
+            </library-path>
+			<library-path dir="${basedir}/libs" append="true">
+				<include name="*.swc" />
+			</library-path>
+		</mxmlc>
+		<copy todir="${basedir}/${APP_ROOT}/icons" overwrite="true">
+		    <fileset dir="${SOURCE}/icons" includes="*" />
+		</copy>
+		<java jar="${SWFZIP}" fork="true" failonerror="true">
+			<arg value="-i" />
+			<arg value="${APP_ROOT}/${APP_BINARY}" />
+			<arg value="-o" />
+			<arg value="${APP_ROOT}/${APP_BINARY}" />
+		</java>
+	</target>
+	
+	<target name="none" depends="info">
+		<fail message="Select a target: build"></fail>
+	</target>
+	
+</project>

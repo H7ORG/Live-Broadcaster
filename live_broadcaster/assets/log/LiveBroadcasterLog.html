@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Live Broadcaster Logger</title>
+<link rel="stylesheet" href="themes/default/style.min.css" />
+<style type="text/css">
+	*{font-family:Consolas, "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", Monaco, "Courier New", "monospace";font-size: 12px;}
+	body, html{background-color: #1A1B1E; color:#ADB1BC;}
+	.log_error{color:#FB4029;}
+	.log_warning{color:#FFCC00;}
+</style>
+</head>
+
+<body>
+	
+	<div id="html">
+		
+		
+		
+	</div>
+	
+	<div id="data"></div>
+
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+	<script src="jstree.min.js"></script>
+	
+	<script>
+		$('#html').jstree();
+		
+		$('#data').jstree({
+		'core' : {
+			'data' : {
+				"url" : "./logs/LiveBroadcaster.json?" + Math.random() ,
+				"dataType" : "json" // needed only if you do not supply JSON headers
+			}
+		}
+	});
+
+	</script>
+
+</body>
+</html>

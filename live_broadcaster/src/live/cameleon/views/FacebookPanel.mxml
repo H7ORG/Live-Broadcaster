@@ -1,0 +1,1008 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:VGroup
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	xmlns:view="view.*"
+	paddingLeft="10" paddingRight="20" paddingBottom="10" gap="10"
+	width="240" width.connecting="340" width.streaming="340" width.disabled="60"
+	creationComplete="init()" xmlns:views="live.cameleon.views.*"
+	>
+	
+	<fx:Declarations>
+		<fx:Boolean id="finished" />
+		<fx:Boolean id="fbIncompatible" />
+		<fx:Boolean id="facebookPublishActions" />
+		<fx:Boolean id="facebookManagePages" />
+		<fx:Boolean id="facebookPublishPages" />
+		<fx:Boolean id="streaming" />
+		<fx:String id="title" />
+		<fx:String id="description" />
+		<mx:XMLListCollection id="profileList" />
+		<fx:XML id="durations">
+			<durations>
+				<duration>
+					<label>Default (4 hours long)</label>
+					<value>REGULAR</value>
+				</duration>
+				<duration>
+					<label>Unlimited</label>
+					<value>AMBIENT</value>
+				</duration>
+			</durations>
+		</fx:XML>
+		<fx:XML id="privacies">
+			<privacies>
+				<privacy>
+					<label>Public</label>
+					<value>EVERYONE</value>
+				</privacy>
+				<privacy>
+					<label>Friends</label>
+					<value>ALL_FRIENDS</value>
+				</privacy>
+				<privacy>
+					<label>Friends of Friends</label>
+					<value>FRIENDS_OF_FRIENDS</value>
+				</privacy>
+				<privacy>
+					<label>Only me</label>
+					<value>SELF</value>
+				</privacy>
+			</privacies>
+		</fx:XML>
+		<mx:XMLListCollection id="durationList" source="{ durations.duration }" />
+		<mx:XMLListCollection id="privacyList" source="{ privacies.privacy }" />
+		<fx:String id="concurrentViewersString">0</fx:String>
+		<fx:String id="likeCountString">0</fx:String>
+		<fx:String id="viewCountString">0</fx:String>
+		<fx:String id="permalink" />
+		<fx:String id="embedCode" />
+		<fx:String id="facebookCursor" />
+		<mx:ArrayCollection id="messageList" />
+		<fx:Boolean id="maxScroll">true</fx:Boolean>
+		<fx:int id="secondsLeft" />
+		<fx:String id="secondsLeftString"> </fx:String>
+		<fx:String id="duration">REGULAR</fx:String>
+		<fx:Boolean id="facebookStreaming" />
+		<fx:Boolean id="ffmpegStreaming" />
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import flash.desktop.Clipboard;
+			import flash.desktop.ClipboardFormats;
+			import flash.display.DisplayObject;
+			import flash.events.Event;
+			import flash.events.MouseEvent;
+			import flash.events.TimerEvent;
+			import flash.filesystem.File;
+			import flash.net.URLRequest;
+			import flash.net.navigateToURL;
+			import flash.utils.Timer;
+			
+			import live.cameleon.licenser.Licenser;
+			import live.cameleon.licenser.LicenserEvent;
+			import live.cameleon.logger.LogEntry;
+			import live.cameleon.logger.Logger;
+			
+			import live.cameleon.modules.FinalModule;
+			
+			import org.igazine.apis.events.FacebookEvent;
+			import org.igazine.apis.facebook.FacebookLoader;
+			import org.igazine.nativeprocess.encoder.FFMPEG;
+			import org.igazine.nativeprocess.events.FFMPEGEvent;
+			
+			import settings.API;
+			import live.cameleon.settings.Debug;
+			import live.cameleon.settings.Encoder;
+			import live.cameleon.settings.URLs;
+			
+			import live.cameleon.views.skins.VScrollBarSkin;
+		
+		
+		protected var currentUser:Object;
+		protected var liveVideo:Object;
+		protected var rtmpAddress:String;
+		protected var ffmpeg:FFMPEG;
+		protected var ffmpegWorkingDirectory:File;
+		protected var facebookTimer:Timer;
+		protected var messages:Array;
+		protected var previousState:String;
+		protected var currentFacebookToken:String;
+		protected var advancedSettingsWindow:FacebookAdvancedOptions;
+		
+		public var parentObject:DisplayObject;
+		public var module:FinalModule;
+		
+		protected function init():void {
+			
+			advancedSettingsWindow = new FacebookAdvancedOptions();
+			FacebookLoader.traceResult = Debug.TRACE_FACEBOOK;
+			Licenser.instance.addEventListener( LicenserEvent.COMPLETE, licenserComplete );
+			
+		}
+		
+		protected function licenserComplete( e:Event ):void {
+			
+			checkProfiles();
+			
+		}
+		
+		public function setDisabled():void {
+			
+			previousState = this.currentState;
+			this.currentState = "disabled";
+			
+		}
+		
+		public function setEnabled():void {
+			
+			this.currentState = previousState;
+			
+		}
+		
+		protected function login( e:MouseEvent ):void {
+			
+			module.startFacebookLogin( e.ctrlKey );
+			
+		}
+		
+		public function updateState():void {
+			
+			if ( !facebookPublishActions ) {
+				
+				this.currentState = "noPermissions";
+				
+			} else {
+				
+				this.currentState = "enabled";
+				
+			}
+			
+		}
+		
+		public function setUser( user:Object ):void {
+			
+			//for ( var i:String in user ) trace( "setuser", i, user[i] );
+			currentUser = user;
+			checkProfiles();
+			
+		}
+		
+		protected function checkProfiles():void {
+			
+			var xml:XML = new XML( "<profiles />" );
+			var profileXML:XML;
+			var canCreatePageContent:Boolean;
+			
+			if ( currentUser ) {
+				
+				profileXML = new XML( "<profile />" );
+				profileXML.name = currentUser.name;
+				profileXML.id = currentUser.id;
+				profileXML.label = currentUser.name;
+				profileXML.type = 0; // user profile
+				profileXML.picture = currentUser.picture.data.url;
+				xml.appendChild( profileXML );
+				
+				if ( currentUser.accounts && facebookPublishPages && facebookManagePages ) {
+					
+					for ( var i:int = 0; i < currentUser.accounts.length; i++ ) {
+						
+						if ( currentUser.accounts[i].perms ) {
+							
+							if ( ( currentUser.accounts[i].perms.indexOf( "ADMINISTER" ) > -1 ) || ( currentUser.accounts[i].perms.indexOf( "CREATE_CONTENT" ) > -1 ) ) {
+							
+								profileXML = new XML( "<profile />" );
+								profileXML.name = currentUser.accounts[i].name;
+								profileXML.id = currentUser.accounts[i].id;
+								profileXML.label = currentUser.accounts[i].name;
+								profileXML.access_token = currentUser.accounts[i].access_token;
+								profileXML.category = currentUser.accounts[i].category;
+								profileXML.type = 1; // page
+								profileXML.disabled = int( !Licenser.instance.isPro );
+								xml.appendChild( profileXML );
+								
+							}
+							
+						}
+						
+					}
+					
+				}
+				
+			}
+			
+			profileList.source = xml.profile;
+			
+		}
+		
+		protected function start():void {
+			
+			this.dispatchEvent( new Event( Event.INIT ) );
+			finished = false;
+			currentState = "connecting";
+			messages = new Array();
+			duration = String( dropdownDuration.selectedItem.value );
+			var fbldr:FacebookLoader = new FacebookLoader();
+			
+			if ( int ( dropdownProfiles.selectedItem.type ) == 1 ) {
+				
+				currentFacebookToken = String( dropdownProfiles.selectedItem.access_token );
+				
+			} else {
+				
+				currentFacebookToken = module.facebookToken;
+				
+				//fbldr.accessToken = "null";
+			}
+			
+			fbldr.accessToken = currentFacebookToken;
+			//fbldr.userId = currentUser.id;
+			fbldr.userId = String( dropdownProfiles.selectedItem.id );
+			//fbldr.privacy = FacebookLoader.PRIVACY_ALL_FRIENDS;
+			if ( dropdownPrivacy.selectedIndex > -1 ) fbldr.privacy = String( dropdownPrivacy.selectedItem.value );
+			fbldr.streamType = duration;
+			fbldr.title = title;
+			//fbldr.description = "🎥🎥🎥" + Settings.BRAND_NOTICE + description;
+			
+			if ( Licenser.instance.isPro ) {
+				
+				fbldr.minAge = advancedSettingsWindow.ageRestriction;
+				fbldr.gender = advancedSettingsWindow.genderRestriction;
+				
+			}
+			
+			fbldr.addEventListener( FacebookEvent.SUCCESS, facebookLiveVideoSuccess );
+			fbldr.addEventListener( FacebookEvent.ERROR, facebookLiveVideoError );
+			fbldr.createLiveVideo();
+			
+		}
+		
+		protected function facebookLiveVideoSuccess( e:FacebookEvent ):void {
+			
+			e.target.removeEventListener( FacebookEvent.SUCCESS, facebookLiveVideoSuccess );
+			e.target.removeEventListener( FacebookEvent.ERROR, facebookLiveVideoError );
+			liveVideo = e.liveVideo;
+			if ( liveVideo ) {
+				
+				createFacebookTimer();
+				createFFMPEG();
+				
+			}
+			
+		}
+		
+		protected function facebookLiveVideoError( e:FacebookEvent ):void {
+			
+			e.target.removeEventListener( FacebookEvent.SUCCESS, facebookLiveVideoSuccess );
+			e.target.removeEventListener( FacebookEvent.ERROR, facebookLiveVideoError );
+			
+			var l:LogEntry = new LogEntry();
+			l.level = Logger.LEVEL_ERROR;
+			l.category = Logger.CATEGORY_FACEBOOK;
+			l.text = "START LIVE";
+			l.addChildObject( { text:"Message: " + e.message } );
+			l.addChildObject( { text:"ErrorType: " + e.errorType } );
+			l.addChildObject( { text:"Code: " + e.code } );
+			Logger.addEntry( l );
+			
+			stop();
+			
+		}
+		
+		protected function createFacebookTimer():void {
+			
+			if ( !facebookTimer ) {
+				
+				facebookTimer = new Timer( 1000, 1 );
+				facebookTimer.addEventListener( TimerEvent.TIMER_COMPLETE, facebookTimerComplete );
+				
+			}
+			
+			facebookTimer.start();
+			
+		}
+		
+		protected function facebookTimerComplete( e:TimerEvent ):void {
+			
+			getLiveVideoDetails();
+			getLiveVideoLikes();
+			getLiveVideoComments();
+			
+		}
+		
+		protected function getLiveVideoDetails():void {
+			
+			var fbldr:FacebookLoader = new FacebookLoader();
+			//fbldr.accessToken = module.facebookToken;
+			fbldr.accessToken = currentFacebookToken;
+			fbldr.id = liveVideo.id;
+			fbldr.addEventListener( FacebookEvent.SUCCESS, facebookGetLiveVideoSuccess );
+			fbldr.addEventListener( FacebookEvent.ERROR, facebookGetLiveVideoError );
+			fbldr.getLiveVideo();
+			
+		}
+		
+		protected function facebookGetLiveVideoSuccess( e:FacebookEvent ):void {
+			
+			e.target.removeEventListener( FacebookEvent.SUCCESS, facebookGetLiveVideoSuccess );
+			e.target.removeEventListener( FacebookEvent.ERROR, facebookGetLiveVideoError );
+			
+			if ( e.liveStatus == "LIVE" || e.liveStatus == "UNPUBLISHED" ) {
+				
+				//currentState = "streaming";
+				facebookStreaming = true;
+				permalink = e.permalink;
+				embedCode = e.embedHtml;
+				secondsLeft = e.secondsLeft;
+				secondsLeftString = generateTimeString( secondsLeft );
+				concurrentViewersString = String( e.liveViews );
+				updatePIP();
+				
+				if ( facebookTimer ) {
+					
+					facebookTimer.delay = 3000;
+					facebookTimer.start();
+					
+				}
+				
+				checkStreamings();
+				
+			}
+			
+			if ( e.liveStatus == "LIVE_STOPPED" ) {
+				
+				stop();
+				
+			}
+			
+		}
+		
+		protected function checkStreamings():void {
+			
+			if ( facebookStreaming && ffmpegStreaming )
+			{
+				currentState = "streaming";
+			}
+			
+			module.setFacebookStream( facebookStreaming, ffmpegStreaming );
+			
+		}
+		
+		protected function updatePIP():void {
+			
+			module.updatePIP( likeCountString, concurrentViewersString, secondsLeftString, duration );
+			module.updatePIPLinks( "https://www.facebook.com" + permalink );
+			
+		}
+		
+		protected function facebookGetLiveVideoError( e:FacebookEvent ):void {
+			
+			e.target.removeEventListener( FacebookEvent.SUCCESS, facebookGetLiveVideoSuccess );
+			e.target.removeEventListener( FacebookEvent.ERROR, facebookGetLiveVideoError );
+			
+		}
+		
+		protected function getLiveVideoLikes():void {
+			
+			var fbldr:FacebookLoader = new FacebookLoader();
+			//fbldr.accessToken = module.facebookToken;
+			fbldr.accessToken = currentFacebookToken;
+			fbldr.id = liveVideo.id;
+			fbldr.addEventListener( FacebookEvent.SUCCESS, facebookGetLiveVideoLikesSuccess );
+			fbldr.addEventListener( FacebookEvent.ERROR, facebookGetLiveVideoLikesError );
+			fbldr.getLiveVideoLikes();
+			
+		}
+		
+		protected function facebookGetLiveVideoLikesSuccess( e:FacebookEvent ):void {
+			
+			e.target.removeEventListener( FacebookEvent.SUCCESS, facebookGetLiveVideoLikesSuccess );
+			e.target.removeEventListener( FacebookEvent.ERROR, facebookGetLiveVideoLikesError );
+			likeCountString = String( e.likes );
+			
+			updatePIP();
+			
+		}
+		
+		protected function facebookGetLiveVideoLikesError( e:FacebookEvent ):void {
+			
+			e.target.removeEventListener( FacebookEvent.SUCCESS, facebookGetLiveVideoLikesSuccess );
+			e.target.removeEventListener( FacebookEvent.ERROR, facebookGetLiveVideoLikesError );
+			
+		}
+		
+		protected function getLiveVideoComments():void {
+			
+			var fbldr:FacebookLoader = new FacebookLoader();
+			//fbldr.accessToken = module.facebookToken;
+			fbldr.accessToken = currentFacebookToken;
+			fbldr.id = liveVideo.id;
+			if ( facebookCursor ) fbldr.after = facebookCursor;
+			fbldr.addEventListener( FacebookEvent.SUCCESS, facebookGetLiveVideoCommentsSuccess );
+			fbldr.addEventListener( FacebookEvent.ERROR, facebookGetLiveVideoCommentsError );
+			fbldr.getLiveVideoComments();
+			
+		}
+		
+		protected function facebookGetLiveVideoCommentsSuccess( e:FacebookEvent ):void {
+			
+			e.target.removeEventListener( FacebookEvent.SUCCESS, facebookGetLiveVideoCommentsSuccess );
+			e.target.removeEventListener( FacebookEvent.ERROR, facebookGetLiveVideoCommentsError );
+			//
+			
+			//trace( "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", e.comments, e.comments.length, e.cursorAfter );
+			if ( e.cursorAfter ) facebookCursor = e.cursorAfter;
+			if ( e.comments.length > 0 ) updateMessages( e.comments );
+			
+		}
+		
+		protected function facebookGetLiveVideoCommentsError( e:FacebookEvent ):void {
+			
+			e.target.removeEventListener( FacebookEvent.SUCCESS, facebookGetLiveVideoCommentsSuccess );
+			e.target.removeEventListener( FacebookEvent.ERROR, facebookGetLiveVideoCommentsError );
+			
+		}
+		
+		protected function transitionLiveVideoToComplete():void {
+			
+			var fbldr:FacebookLoader = new FacebookLoader();
+			//fbldr.accessToken = module.facebookToken;
+			fbldr.accessToken = currentFacebookToken;
+			fbldr.id = liveVideo.id;
+			fbldr.addEventListener( FacebookEvent.SUCCESS, facebookEndLiveVideoSuccess );
+			fbldr.addEventListener( FacebookEvent.ERROR, facebookEndLiveVideoError );
+			fbldr.endLiveVideo();
+			
+		}
+		
+		protected function facebookEndLiveVideoSuccess( e:FacebookEvent ):void {
+			
+			e.target.removeEventListener( FacebookEvent.SUCCESS, facebookEndLiveVideoSuccess );
+			e.target.removeEventListener( FacebookEvent.ERROR, facebookEndLiveVideoError );
+			finish();
+			
+		}
+		
+		protected function facebookEndLiveVideoError( e:FacebookEvent ):void {
+			
+			e.target.removeEventListener( FacebookEvent.SUCCESS, facebookEndLiveVideoSuccess );
+			e.target.removeEventListener( FacebookEvent.ERROR, facebookEndLiveVideoError );
+			finish();
+			
+		}
+		
+		protected function updateMessages( a:Array ):void {
+			
+			var i:int;
+			var edited:Boolean;
+			
+			if ( a.length > 0 ) edited = true;
+			
+			for ( i = 0; i < a.length; i++ ) {
+				
+				a[i].isChatOwner = Boolean( String( a[i].from.id ) == String( currentUser.id ) );
+				messages.push( a[i] );
+				
+			}
+			
+			if ( messages.length > API.I.FACEBOOK_MAX_MESSAGES ) {
+				
+				edited = true;
+				messages.splice( 0, messages.length - API.I.FACEBOOK_MAX_MESSAGES );
+				
+			}
+			
+			if ( edited ) {
+				
+				messageList.source = messages;
+				scrollToBottom();
+				module.setPIPMessages( messages );
+				
+			}
+			
+		}
+		
+		protected function scrollToBottom():void {
+			
+			listMessages.scroller.verticalScrollBar.value = listMessages.scroller.verticalScrollBar.maximum;
+			
+			/*
+			if ( listMessages ) {
+				
+				if ( maxScroll ) {
+					
+					listMessages.scroller.verticalScrollBar.value = listMessages.scroller.verticalScrollBar.maximum;
+					
+				} else {
+					
+					listMessages.scroller.verticalScrollBar.value = scrollPosition;
+					
+				}
+				
+			}
+			*/
+			
+		}
+		
+		protected function scrollChange( e:Event ):void {
+			
+			//scrollPosition = listMessages.scroller.verticalScrollBar.value;
+			
+			if ( listMessages.scroller.verticalScrollBar.value == listMessages.scroller.verticalScrollBar.maximum ) {
+				
+				maxScroll = true;
+				
+			} else {
+				
+				maxScroll = false;
+				
+			}
+			
+		}
+		
+		protected function listInit():void {
+			
+			listMessages.scroller.verticalScrollBar.addEventListener( Event.CHANGE, scrollChange );
+			listMessages.scroller.verticalScrollBar.setStyle( "skinClass", VScrollBarSkin );
+			
+		}
+		
+		protected function createFFMPEG():void {
+			
+			if ( !ffmpeg ) {
+				
+				ffmpeg = new FFMPEG( module.ffmpegFile );
+				
+			}
+			
+			ffmpeg.disableRetry = true;
+			ffmpeg.workingDirectory = File.applicationStorageDirectory;
+			ffmpegWorkingDirectory = File.applicationStorageDirectory;
+			ffmpegWorkingDirectory.createDirectory();
+			ffmpeg.overwriteFiles = true;
+			
+			addFFMPEGListeners();
+			connectFFMPEGToDefaultStream();
+			
+		}
+		
+		protected function connectFFMPEGToDefaultStream():void {
+
+			rtmpAddress = module.cc.rtmpProtocol + "://" + module.cc.address + ":" + String( module.cc.rtmpPort ) + "/" + module.cc.applicationName + "/" + URLs.SERVER_STREAM_NAME;
+			
+			var s:Vector.<String> = new Vector.<String>();
+			s.push( "-stats", "-y", "-loglevel", "32", "-thread_queue_size", "512" );
+			if ( Encoder.LOGGING ) s.push( "-report" );
+			s.push( "-i", rtmpAddress );
+			s.push( "-vcodec", "copy", "-acodec", "copy" );
+			s.push( "-tune", "zeroLatency" );
+			s.push( "-copytb", "1" );
+			s.push( "-f", "flv" );
+			s.push( liveVideo.stream_url );
+			trace( s.join( " " ) );
+			ffmpeg.execute( s );
+			
+			var l:LogEntry = new LogEntry();
+			l.level = Logger.LEVEL_INFO;
+			l.category = Logger.CATEGORY_ENCODER;
+			l.text = "FACEBOOK START";
+			//l.addChildObject( { text:"Video device: " + deviceParams.video } );
+			Logger.addEntry( l );
+			
+		}
+		
+		protected function addFFMPEGListeners():void {
+			
+			ffmpeg.addEventListener( FFMPEGEvent.INIT, ffmpegInit );
+			ffmpeg.addEventListener( FFMPEGEvent.RETRY, ffmpegRetry );
+			ffmpeg.addEventListener( FFMPEGEvent.START, ffmpegStart );
+			ffmpeg.addEventListener( FFMPEGEvent.EXIT, ffmpegExit );
+			ffmpeg.addEventListener( FFMPEGEvent.CONNECTION_ERROR, ffmpegConnectionError );
+			ffmpeg.addEventListener( FFMPEGEvent.VIDEO_STREAM_FOUND, ffmpegVideoStreamFound );
+			ffmpeg.addEventListener( FFMPEGEvent.ERROR_OUTPUT, ffmpegOutput );
+			
+		}
+		
+		protected function removeFFMPEGListeners():void {
+			
+			ffmpeg.removeEventListener( FFMPEGEvent.INIT, ffmpegInit );
+			ffmpeg.removeEventListener( FFMPEGEvent.RETRY, ffmpegRetry );
+			ffmpeg.removeEventListener( FFMPEGEvent.START, ffmpegStart );
+			ffmpeg.removeEventListener( FFMPEGEvent.EXIT, ffmpegExit );
+			ffmpeg.removeEventListener( FFMPEGEvent.CONNECTION_ERROR, ffmpegConnectionError );
+			ffmpeg.removeEventListener( FFMPEGEvent.VIDEO_STREAM_FOUND, ffmpegVideoStreamFound );
+			ffmpeg.removeEventListener( FFMPEGEvent.ERROR_OUTPUT, ffmpegOutput );
+			
+		}
+		
+		protected function ffmpegInit( e:FFMPEGEvent ):void {}
+		protected function ffmpegRetry( e:FFMPEGEvent ):void {}
+		protected function ffmpegStart( e:FFMPEGEvent ):void {
+			
+			//updateYouTubeStreams();
+			trace( "ffmpegStart" );
+			ffmpegStreaming = true;
+			checkStreamings();
+			//createFacebookTimer();
+			
+		}
+		
+		protected function ffmpegExit( e:FFMPEGEvent ):void {
+			
+			trace( "ffmpegExit" );
+			var l:LogEntry = new LogEntry();
+			l.level = Logger.LEVEL_INFO;
+			l.category = Logger.CATEGORY_ENCODER;
+			l.text = "FACEBOOK EXIT";
+			//l.addChildObject( { text:"Video device: " + deviceParams.video } );
+			Logger.addEntry( l );
+			stop();
+			
+		}
+		
+		protected function ffmpegConnectionError( e:FFMPEGEvent ):void {}
+		protected function ffmpegVideoStreamFound( e:FFMPEGEvent ):void {
+			
+			trace( "ffmpegVideoStreamFound" );
+			
+		}
+		protected function ffmpegOutput( e:FFMPEGEvent ):void {
+			
+			if ( Debug.TRACE_FFMPEG_FACEBOOK ) trace( e.data );
+			
+		}
+		
+		public function stop():void {
+			
+			facebookStreaming = false;
+			ffmpegStreaming = false;
+			
+			if ( facebookTimer ) {
+				
+				facebookTimer.removeEventListener( TimerEvent.TIMER_COMPLETE, facebookTimerComplete );
+				facebookTimer.stop();
+				facebookTimer = null;
+				
+			}
+			
+			if ( ffmpeg ) {
+				
+				removeFFMPEGListeners();
+				ffmpeg.stop();
+				ffmpeg = null;
+				var l:LogEntry = new LogEntry();
+				l.level = Logger.LEVEL_INFO;
+				l.category = Logger.CATEGORY_ENCODER;
+				l.text = "FACEBOOK STOP";
+				//l.addChildObject( { text:"Video device: " + deviceParams.video } );
+				Logger.addEntry( l );
+				
+			}
+			
+			messageList.removeAll();
+			messages = null;
+			
+			if ( duration == "AMBIENT" ) {
+				
+				transitionLiveVideoToComplete();
+				
+			} else {
+				
+				finish();
+				
+			}
+			
+		}
+		
+		protected function finish():void {
+			
+			currentState = "enabled";
+			finished = true;
+			
+			this.dispatchEvent( new Event( Event.CLOSE ) );
+			
+		}
+		
+		private function copyEmbedCode():void {
+			
+			Clipboard.generalClipboard.setData( ClipboardFormats.TEXT_FORMAT, embedCode );
+			
+		}
+		
+		private function copyLink():void {
+			
+			Clipboard.generalClipboard.setData( ClipboardFormats.TEXT_FORMAT, "https://www.facebook.com" + permalink );
+			
+		}
+		
+		private function openLink():void {
+			
+			navigateToURL( new URLRequest( "https://www.facebook.com" + permalink ) );
+			
+		}
+		
+		private function generateTimeString( time:int ):String {
+			
+			var s:String;
+			
+			var hours:int = time / ( 60 * 60 );
+			var remainingMinutes:int = time % ( hours * 60 * 60 )
+			var minutes:int = remainingMinutes / 60;
+			var remainingSeconds:int = time - ( hours * 60 * 60 ) - ( minutes * 60 );
+			var seconds:int = remainingSeconds;
+			
+			var sh:String = String ( hours );
+			var sm:String = String ( minutes );
+			if ( minutes < 10 ) sm = "0" + sm;
+			var ss:String = String ( seconds );
+			if ( seconds < 10 ) ss = "0" + ss;
+			
+			s = sh + ":" + sm + ":" + ss;
+			
+			return s;
+			
+		}
+		
+		private function profileChange():void {
+			
+			dropdownPrivacy.enabled = ( int( dropdownProfiles.selectedItem.type ) != 1 );
+			
+		}
+		
+		private function advancedOptions():void {
+			
+			advancedSettingsWindow.show( module.mainWindow );
+			
+		}
+		
+		private function openAppSettings():void {
+			
+			var bw:live.cameleon.views.BrowserWindow = new live.cameleon.views.BrowserWindow();
+			bw.address = URLs.LINK_FACEBOOK_APP_SETTINGS;
+			bw.show( module.mainWindow as DisplayObject );
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<mx:State name="loggedOut" />
+		<mx:State name="disabled" />
+		<mx:State name="enabled" />
+		<mx:State name="noPermissions" />
+		<mx:State name="connecting" />
+		<mx:State name="streaming" />
+	</s:states>
+	
+	<s:transitions>
+		<s:Transition fromState="*" toState="connecting">
+			<s:Parallel target="{this}">
+				<s:Resize duration="200" />
+			</s:Parallel>
+		</s:Transition>
+		<s:Transition fromState="streaming" toState="enabled">
+			<s:Parallel target="{this}">
+				<s:Resize duration="200" />
+			</s:Parallel>
+		</s:Transition>
+		<s:Transition fromState="connecting" toState="enabled">
+			<s:Parallel target="{this}">
+				<s:Resize duration="200" />
+			</s:Parallel>
+		</s:Transition>
+		<s:Transition fromState="*" toState="disabled">
+			<s:Parallel target="{this}">
+				<s:Resize duration="200" />
+			</s:Parallel>
+		</s:Transition>
+		<s:Transition fromState="disabled" toState="*">
+			<s:Parallel target="{this}">
+				<s:Resize duration="200" />
+			</s:Parallel>
+		</s:Transition>
+	</s:transitions>
+	
+	<s:Ellipse visible="false" width="{ this.width * 1.5 }" height="{ this.width * 1.5 }" includeInLayout="false" y="{ (this.height - this.width * 1.5) / 2 }" x="{ this.width - ( this.width * .75 ) }">
+		
+		<s:fill>
+			
+			<mx:RadialGradient>
+				<mx:entries>
+					<mx:GradientEntry color="#4267B2" alpha=".2" />
+					<mx:GradientEntry color="#4267B2" alpha="0" />
+				</mx:entries>
+			</mx:RadialGradient>
+			
+		</s:fill>
+		
+	</s:Ellipse>
+	
+	<s:HGroup verticalAlign="middle" width="100%" excludeFrom="disabled">
+		
+		<s:BitmapImage smooth="true" scaleX=".5" scaleY=".5" source='@Embed(source="../../../../assets/facebook_logo.png")' />
+		<s:Label fontWeight="bold" text="LIVE" includeIn="streaming" color="#4267B2" height="12" />
+		<mx:Spacer width="100%" />
+		<s:HGroup height="100%" verticalAlign="middle" includeIn="connecting, streaming" toolTip="Total views: { viewCountString }">
+			<s:BitmapImage source='@Embed(source="../../../../assets/icon_view.png")' scaleX=".5" scaleY=".5" />
+			<s:Label text="{ concurrentViewersString }" lineHeight="11" height="11" />
+			<mx:Spacer width="0" includeIn="connecting, streaming" />
+			<s:BitmapImage source='@Embed(source="../../../../assets/icon_like.png")' scaleX=".5" scaleY=".5" />
+			<s:Label text="{ likeCountString }" lineHeight="11" height="11" />
+		</s:HGroup>
+		
+	</s:HGroup>
+	
+	<mx:Spacer height="0" />
+	
+	<s:VGroup width="100%" height="100%" gap="20" includeIn="loggedOut" includeInLayout="{ !fbIncompatible }" visible="{ !fbIncompatible }">
+		
+		<views:ColoredButton label="Connect Facebook" color="#4267B2" width="100%" click="login( event )" hAlign="left" />
+		
+	</s:VGroup>
+	
+	<s:VGroup width="100%" height="100%" gap="20" includeIn="noPermissions" includeInLayout="{ !fbIncompatible }" visible="{ !fbIncompatible }">
+		
+		<views:ColoredButton label="Reconnect Facebook" color="#4267B2" width="100%" click="login( event )" hAlign="left" />
+		
+		<s:Label
+			width="100%"
+			text="You are logged in but Live Streaming is disabled due to denied publishing permissions. Please connect your account again and grant the appropriate permissions"
+		/>
+		
+	</s:VGroup>
+	
+	<s:VGroup alpha=".33" width="100%" height="100%" gap="20" includeIn="disabled" includeInLayout="{ !fbIncompatible }" visible="{ !fbIncompatible }" horizontalAlign="center" verticalAlign="middle">
+		
+		<s:BitmapImage rotation="90" smooth="true" scaleX=".5" scaleY=".5" source='@Embed(source="../../../../assets/facebook_logo.png")' />
+		<s:Label rotation="90" text="Facebook Live is disabled while YouTube is streaming" />
+		
+	</s:VGroup>
+	
+	<s:VGroup width="100%" height="100%" gap="10" includeIn="connecting" includeInLayout="{ !fbIncompatible }" visible="{ !fbIncompatible }">
+		<s:Label width="100%" text="Creating Live Stream" styleName="h3" />
+		<s:Label width="100%" text="Please wait..." />
+	</s:VGroup>
+	
+	<s:VGroup width="100%" height="100%" gap="16" includeIn="enabled" includeInLayout="{ !fbIncompatible }" visible="{ !fbIncompatible }">
+	
+		<s:Label text="Profile and Pages" styleName="h3" />
+		
+		<views:Dropdown id="dropdownProfiles" itemRenderer="live.cameleon.views.renderers.ProfileListItem" dataProvider="{ profileList }" prompt="Select profile or page" icon='@Embed(source="../../../../assets/icon_profile.png")' width="100%" change="profileChange()" />
+		
+		<s:Label text="Privacy" styleName="h3" />
+		
+		<views:Dropdown toolTip="Application settings on Facebook may override privacy settings" id="dropdownPrivacy" dataProvider="{ privacyList }" prompt="Select privacy" icon='@Embed(source="../../../../assets/icon_privacy.png")' width="100%" />
+		
+		<s:Label text="Duration" styleName="h3" />
+		
+		<views:Dropdown id="dropdownDuration" prompt="Select duration" dataProvider="{ durationList }" icon='@Embed(source="../../../../assets/icon_time.png")' width="100%" />
+		
+		<views:InfoLabel width="100%" text="Unlimited length video will not be recorded and your followers will not get notified when you go live" includeInLayout="{ ( dropdownDuration.selectedIndex == 1 ) }" visible="{ ( dropdownDuration.selectedIndex == 1 ) }" />
+		
+		<s:Label text="Advanced Settings" styleName="h3" />
+		
+		<views:ColoredButton
+			includeIn="enabled"
+			width="100%"
+			color="#3F424C"
+			labelColor="#ADB1BC"
+			label="Show advanced settings"
+			hAlign="left"
+			click="advancedOptions()"
+		/>
+		
+		<mx:Spacer />
+		
+	</s:VGroup>
+	
+	<s:HGroup width="100%" gap="4" includeInLayout="{ !fbIncompatible }" visible="{ !fbIncompatible }" includeIn="enabled">
+		
+		<views:ColoredButton
+			width="100%"
+			color="#4267B2"
+			label="Start Facebook Live"
+			hAlign="left"
+			enabled="{ streaming &amp;&amp; ( dropdownProfiles.selectedIndex >= 0 ) &amp;&amp; ( dropdownDuration.selectedIndex >= 0 ) &amp;&amp; ( ( int( dropdownProfiles.selectedItem.type ) == 1 ) || ( dropdownPrivacy.selectedIndex >= 0 ) ) }"
+			click="start()"
+		/>
+		
+		<!--
+		<view:ColoredButton
+			width="36"
+			toolTip="Facebook App Settings"
+			color="#4267B2"
+			showLabel="false"
+			showIcon="true"
+			hAlign="left"
+			icon='@Embed(source="../../../../assets/icon_settings.png")'
+			click="openAppSettings()"
+		/>
+		-->
+			
+	</s:HGroup>
+	
+	<s:VGroup id="chatGroup" width="100%" height="100%" gap="10" includeIn="streaming" includeInLayout="{ !fbIncompatible }" visible="{ !fbIncompatible }">
+		
+		<s:Label width="100%" text="No comments yet" styleName="h3" includeInLayout="{ ( messageList.length == 0 ) }" visible="{ ( messageList.length == 0 ) }" />
+		<s:Label width="100%" text="New comments will appear here" includeInLayout="{ ( messageList.length == 0 ) }" visible="{ ( messageList.length == 0 ) }" />
+		
+		<s:List
+			id="listMessages"
+			width="100%" height="100%"
+			dataProvider="{ messageList }"
+			itemRenderer="live.cameleon.views.renderers.ChatItemFacebook"
+			borderVisible="false"
+			horizontalScrollPolicy="off"
+			updateComplete="scrollToBottom()"
+			creationComplete="listInit()"
+			useVirtualLayout="true"
+			>
+			<s:layout>
+				<s:VerticalLayout gap="10" />
+			</s:layout>
+		</s:List>
+		
+		<s:Label width="100%" textAlign="center" text="Remaining time: { secondsLeftString }" color="#4267B2" includeInLayout="{ duration == 'REGULAR' }" visible="{ duration == 'REGULAR' }" />
+		
+	</s:VGroup>
+		
+	<s:HGroup width="100%" includeIn="streaming" includeInLayout="{ !fbIncompatible }" visible="{ !fbIncompatible }">
+		
+		<views:ColoredButton
+			width="100%"
+			color="#4267B2"
+			label="Stop"
+			enabled="{ streaming }"
+			click="stop()"
+			hAlign="left"
+			toolTip="Stop Facebook Live"
+		/>
+		
+		<views:ColoredButton
+			width="36"
+			color="#3F424C"
+			icon='@Embed(source="../../../../assets/icon_public.png")'
+			showIcon="true"
+			showLabel="false"
+			enabled="{ streaming }"
+			click="openLink()"
+			toolTip="Open in browser"
+		/>
+		
+		<views:ColoredButton
+			showIcon="true"
+			showLabel="false"
+			width="36"
+			color="#3F424C"
+			icon='@Embed(source="../../../../assets/icon_link.png")'
+			enabled="{ streaming }"
+			click="copyLink()"
+			toolTip="Copy web link code to clipboard"
+		/>
+		
+		<views:ColoredButton
+			id="buttonEmbed"
+			showIcon="true"
+			showLabel="false"
+			width="36"
+			color="#3F424C"
+			icon='@Embed(source="../../../../assets/icon_embed.png")'
+			enabled="{ streaming }"
+			click="copyEmbedCode()"
+			toolTip="Copy HTML embed code to clipboard"
+		/>
+		
+	</s:HGroup>
+	
+	<s:VGroup width="100%" height="100%" gap="20" includeInLayout="{ fbIncompatible }" visible="{ fbIncompatible }">
+		
+		<s:Label text="Facebook Live is disabled due to incompatible stream settings" width="100%" />
+		<s:Label text="Please enable Facebook compatibility if you want to stream live to Facebook or choose compatible settings" width="100%" />
+		
+	</s:VGroup>
+	
+</s:VGroup>

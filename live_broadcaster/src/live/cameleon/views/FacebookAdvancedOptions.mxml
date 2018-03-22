@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<views:ModalWindow
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	xmlns:views="live.cameleon.views.*"
+	width="400"
+	height="380"
+	title="Advanced Facebook Live Settings"
+	creationComplete="init()"
+	>
+	
+	<fx:Declarations>
+		<fx:int id="ageRestriction">0</fx:int>
+		<fx:int id="genderRestriction">0</fx:int>
+		<fx:XML id="xmlAges">
+			<ages>
+				<age>
+					<label>Anyone (Unrestricted)</label>
+					<value>0</value>
+				</age>
+				<age>
+					<label>13+ (People over 13 years)</label>
+					<value>13</value>
+				</age>
+				<age>
+					<label>18+ (People over 18 years)</label>
+					<value>18</value>
+				</age>
+				<age>
+					<label>21+ (People over 21 years)</label>
+					<value>21</value>
+				</age>
+			</ages>
+		</fx:XML>
+		<fx:XML id="xmlGenders">
+			<genders>
+				<gender>
+					<label>Any (Unrestricted)</label>
+					<value>0</value>
+				</gender>
+				<gender>
+					<label>Male</label>
+					<value>1</value>
+				</gender>
+				<gender>
+					<label>Female</label>
+					<value>2</value>
+				</gender>
+			</genders>
+		</fx:XML>
+		<mx:XMLListCollection id="genderList" source="{ xmlGenders.gender }" />
+		<mx:XMLListCollection id="ageList" source="{ xmlAges.age }" />
+		
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+		
+		import live.cameleon.licenser.Licenser;
+		
+		override protected function init():void {
+			
+			super.init();
+			dropdownAgeRestriction.setSelectedIndex( 0 );
+			dropdownGenderRestriction.setSelectedIndex( 0 );
+			
+		}
+		
+		override public function close():void {
+			
+			ageRestriction = int( dropdownAgeRestriction.selectedItem.value );
+			genderRestriction = int( dropdownGenderRestriction.selectedItem.value );
+			super.close();
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+	<views:content>
+		
+		<s:VGroup width="300" height="100%" horizontalAlign="left" verticalAlign="top" paddingTop="20" gap="10" horizontalCenter="0">
+			
+			<s:Label text="Age restriction" styleName="h3" />
+			<views:Dropdown id="dropdownAgeRestriction" toolTip="Restrict your audience by minimum age" dataProvider="{ ageList }" width="100%" icon='@Embed(source="../../../../assets/icon_group.png")' />
+			
+			<mx:Spacer />
+			
+			<s:Label text="Gender restriction" styleName="h3" />
+			<views:Dropdown id="dropdownGenderRestriction" toolTip="Restrict your audience by gender. 'Any' will be visible to all available genders" dataProvider="{ genderList }" width="100%" icon='@Embed(source="../../../../assets/icon_gender.png")' />
+			
+			<mx:Spacer height="10" />
+			
+			<views:InfoLabel width="100%" text="These settings are applied to Pages only, Personal Profiles won't be affected" />
+			
+			<views:InfoLabel width="100%" text="Your page's target demographics settings on Facebook may override any of the selected values above" />
+			
+			<views:InfoLabel width="100%" text="These settings require a PRO account to take effect" isPro="true" color="#8AD12E" visible="{ !Licenser.instance.isPro } " />
+			
+		</s:VGroup>
+		
+		
+	</views:content>
+	
+</views:ModalWindow>

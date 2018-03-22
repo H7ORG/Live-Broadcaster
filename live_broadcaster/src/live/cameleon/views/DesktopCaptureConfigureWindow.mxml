@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<views:ModalWindow
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	xmlns:views="live.cameleon.views.*"
+	width="400"
+	height="200"
+	title="Configure Desktop Capture" 
+	>
+	
+	<fx:Declarations>
+		<fx:Boolean id="isMac" />
+		<fx:Boolean id="captureMouse" />
+		<fx:Boolean id="captureMouseClick" />
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+		
+		override public function close():void {
+			
+			captureMouse = cbCaptureMouse.selected;
+			captureMouseClick = cbCaptureMouseClick.selected;
+			super.close();
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+	<views:content>
+		
+		<s:VGroup width="250" horizontalCenter="0" gap="20" height="100%" verticalAlign="middle" paddingBottom="20">
+			
+			<views:CheckBoxX id="cbCaptureMouse" label="Capture mouse cursor" width="100%" selected="{ captureMouse }" />
+			<views:CheckBoxX id="cbCaptureMouseClick" label="Capture mouse clicks" width="100%" selected="{ captureMouseClick }" includeInLayout="{ isMac }" visible="{ isMac }" />
+			
+		</s:VGroup>
+		
+	</views:content>
+	
+</views:ModalWindow>

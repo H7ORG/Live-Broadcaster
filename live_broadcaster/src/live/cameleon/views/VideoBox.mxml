@@ -1,0 +1,510 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:BorderContainer
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	xmlns:views="live.cameleon.views.*"
+	width="100%" height="100%"
+	backgroundColor="#1A1B1E"
+	backgroundAlpha="{ bgAlpha }"
+	borderVisible="false"
+	resize="onResize()"
+	creationComplete="init()"
+	addedToStage="addedToStage()"
+	>
+	
+	<s:filters>
+		<s:DropShadowFilter angle="90" blurX="15" blurY="15" distance="3" alpha=".33" />
+	</s:filters>
+	
+	<fx:Declarations>
+		<fx:Boolean id="connecting" />
+		<fx:Boolean id="connected" />
+		<fx:Boolean id="zoom" />
+		<fx:Boolean id="editable" />
+		<fx:int id="videoWidth" />
+		<fx:int id="videoHeight" />
+		<fx:int id="videoFPS" />
+		<fx:Number id="videoBW" />
+		<fx:Number id="audioBW" />
+		<fx:String id="orientation" />
+		<fx:Boolean id="xmeta" />
+		<fx:Number id="bgAlpha">1</fx:Number>
+		<fx:Boolean id="muted">true</fx:Boolean>
+		<fx:String id="snapshotPath" />
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+		
+		import flash.display.BitmapData;
+		import flash.display.Sprite;
+		import flash.events.Event;
+		import flash.events.NetStatusEvent;
+		import flash.events.StageVideoAvailabilityEvent;
+		import flash.events.StageVideoEvent;
+		import flash.filesystem.File;
+		import flash.geom.Rectangle;
+		import flash.media.Camera;
+		import flash.media.SoundTransform;
+		import flash.media.StageVideo;
+		import flash.media.StageVideoAvailability;
+		import flash.media.Video;
+		import flash.media.VideoStatus;
+		
+		import mx.events.PropertyChangeEvent;
+		
+		import live.cameleon.helpers.DeviceHelper;
+		import live.cameleon.logger.LogEntry;
+		import live.cameleon.logger.Logger;
+		import live.cameleon.modules.FinalModule;
+		import live.cameleon.settings.BindableSettings;
+		import live.cameleon.settings.ServerSettings;
+		import live.cameleon.utils.Utils;
+		
+		import org.igazine.net.ServerStream;
+		
+		public var ns:ServerStream;
+		public var module:FinalModule;
+		
+		private var nc:NetConnection;
+		private var st:SoundTransform;
+		private var video:Video;
+		private var theAddress:String;
+		private var theStreamName:String;
+		private var msk:Sprite;
+		private var numBuffering:int;
+		private var stageVideo:StageVideo;
+		private var camera:Camera;
+		private var bmp:BitmapData;
+		
+		private function init():void {
+			
+			this.addEventListener( PropertyChangeEvent.PROPERTY_CHANGE, propertyChange );
+			videoWidth = 1280;
+			videoHeight = 720;
+			
+			video = new Video( 1280, 720 );
+			
+			msk = new Sprite();
+			msk.graphics.beginFill( 0xFF0000 );
+			msk.graphics.drawRect( 0, 0, videoHolder.width, videoHolder.height );
+			msk.graphics.endFill();
+			
+			videoHolder.mask = msk;
+			videoHolder.addChild( video );
+			video.width = videoHolder.width;
+			video.height = videoHolder.height;
+			video.smoothing = true;
+			
+		}
+		
+		private function addedToStage():void {
+			
+			if ( BindableSettings.USE_STAGE_VIDEO ) stage.addEventListener( StageVideoAvailabilityEvent.STAGE_VIDEO_AVAILABILITY, stageVideoAvailable );
+			
+		}
+		
+		private function stageVideoAvailable( e:StageVideoAvailabilityEvent ):void {
+			
+			trace( 'stageVideoAvailable', e.availability );
+			
+			if ( e.availability == StageVideoAvailability.AVAILABLE ) {
+				
+				if ( !stageVideo ) {
+					
+					stageVideo = stage.stageVideos[0];
+					stageVideo.addEventListener( StageVideoEvent.RENDER_STATE, stageVideoStateChange );
+					stageVideo.viewPort = new Rectangle( 0, 0, 200, 200 );
+					
+				}
+				
+			}
+			
+		}
+		
+		private function stageVideoStateChange( e:StageVideoEvent ):void {
+			
+			trace( "stageVideoStateChange", e.codecInfo, e.status );
+			
+			if ( e.status == VideoStatus.ACCELERATED ) {
+				
+				
+				
+			}
+			
+			if ( e.status == VideoStatus.SOFTWARE ) {
+				
+				
+				
+			}
+			
+		}
+		
+		private function propertyChange( e:PropertyChangeEvent ):void {
+			
+		}
+		
+		public function connectStream( address:String, streamName:String ):void {
+			
+			numBuffering = 0;
+			theAddress = address;
+			theStreamName = streamName;
+			
+			if ( !nc ) {
+				
+				nc = new NetConnection();
+				
+			}
+			
+			nc.addEventListener( NetStatusEvent.NET_STATUS, netStatus );
+			nc.connect( theAddress );
+			
+		}
+		
+		public function disconnectStream( ):void {
+			
+			if ( nc ) {
+				
+				nc.close();
+				nc.removeEventListener( NetStatusEvent.NET_STATUS, netStatus );
+				nc = null;
+				
+			}
+			
+		}
+		
+		private function netStatus( e:NetStatusEvent ):void {
+		
+			trace( e.info.code );
+			
+			switch ( e.info.code ) {
+				
+				case "NetConnection.Connect.Success":
+					createVideo();
+					break;
+					
+				case "NetConnection.Connect.Closed":
+					removeVideo();
+					break;
+				
+				case "NetStream.Buffer.Full":
+					bufferFull();
+					break;
+				
+				case "NetStream.Buffer.Empty":
+					bufferEmpty();
+					break;
+				
+				case "NetStream.Video.DimensionChange":
+					onResize();
+					break;
+				
+			}
+			
+		}
+		
+		private function bufferEmpty():void {
+			
+			numBuffering++;
+			
+			if ( numBuffering > 3 ) {
+				
+				var le:LogEntry = new LogEntry();
+				le.level = Logger.LEVEL_WARNING;
+				le.category = Logger.CATEGORY_ENCODER;
+				le.text = "Buffering is high which produces a choppy live stream. Consider using a lower video resolution";
+				Logger.addEntry( le );
+				
+				numBuffering = 0;
+				
+			}
+			
+		}
+		
+		private function createVideo():void {
+			
+			if ( !ns ) {
+				
+				ns = new ServerStream( nc, int( !muted ), ServerSettings.BUFFER_TIME );
+				ns.addEventListener( NetStatusEvent.NET_STATUS, netStatus );
+				ns.client = this;
+				
+			}
+			
+			if ( stageVideo ) {
+				
+				stageVideo.attachNetStream( ns );
+				
+			} else {
+			
+					
+				video.attachNetStream( ns );
+				
+			}
+			
+			ns.play( theStreamName );
+			onResize();
+			
+			module.streamPlaying( ns );
+			
+		}
+		
+		public function removeVideo():void {
+			
+			bgAlpha = 1;
+			
+			if ( ns ) {
+				
+				ns.play( null );
+				ns.removeEventListener( NetStatusEvent.NET_STATUS, netStatus );
+				ns.dispose();
+				ns = null;
+				
+			}
+				
+		}
+		
+		public function onResize():void {
+			
+			//trace( videoWidth, videoHeight );
+			
+			videoHolder.width = this.width;
+			videoHolder.height = this.height;
+			
+			if ( video || stageVideo ) {
+				
+				calculateVideoSize( videoWidth, videoHeight );
+				
+			}
+			
+			this.validateNow();
+			
+		}
+		
+		public function createBitmap():void {
+			
+			this.dispatchEvent( new Event( Event.VIDEO_FRAME ) );
+			
+		}
+		
+		public function get bitmapData():BitmapData {
+			
+			bmp = new BitmapData( videoHolder.width, videoHolder.height, false, 0 );
+			bmp.draw( videoHolder );
+			return bmp;
+			
+		}
+		
+		public function loadSnapshot( f:File ):void {
+			
+			snapshotPath = "";
+			if ( f && f.exists ) snapshotPath = "file:///" + f.nativePath;
+			return;
+			
+		}
+		
+		private function calculateVideoSize( w:int, h:int ):void {
+			
+			var r:Rectangle = Utils.calculateSize( new Rectangle(0, 0, videoHolder.width, videoHolder.height), new Rectangle( 0, 0, w, h ), zoom );
+			
+			if ( stageVideo ) {
+				
+				r = Utils.calculateSize( new Rectangle(0, 0, videoHolder.width, videoHolder.height), new Rectangle( 0, 0, w, h ), true );
+				r.x = this.getRect( stage ).x;
+				r.y = this.getRect( stage ).y;
+				stageVideo.viewPort = r;
+				
+			} else {
+				
+				video.width = r.width;
+				video.height = r.height;
+				video.x = r.x;
+				video.y = r.y;
+				
+				msk.width = videoHolder.width;
+				msk.height = videoHolder.height;
+				
+			}			
+			
+		}
+		
+		public function onMetaData( o:* ):void {
+			
+			var a:int = 0;
+			
+			//trace( "typeof", typeof( o ), o["0"], "customWidth:" + o.customWidth, o as Array );
+			if ( ( o["0"] != null ) && ( o["0"] == 0 ) ) a++;
+			
+			for ( var i:String in o ) {
+				
+				trace( 'metadata', i, o[i], typeof( o[i] ) );
+				
+				if ( String( o[i] ).search( "xmeta_enabled" ) >= 0 ) xmeta = Boolean( int( String( o[i] ).split( "xmeta_enabled:" )[1] ) );
+				if ( String( o[i] ).search( "xmeta_width" ) >= 0 ) videoWidth = int( String( o[i] ).split( "xmeta_width:" )[1] );
+				if ( String( o[i] ).search( "xmeta_height" ) >= 0 ) videoHeight = int( String( o[i] ).split( "xmeta_height:" )[1] );
+				if ( String( o[i] ).search( "xmeta_fps" ) >= 0 ) videoFPS = int( String( o[i] ).split( "xmeta_fps:" )[1] );
+				if ( String( o[i] ).search( "xmeta_bv" ) >= 0 ) videoBW = int( String( o[i] ).split( "xmeta_bv:" )[1] );
+				if ( String( o[i] ).search( "xmeta_ba" ) >= 0 ) audioBW = int( String( o[i] ).split( "xmeta_ba:" )[1] );
+				if ( String( o[i] ).search( "xmeta_orientation" ) >= 0 ) orientation = String( String( o[i] ).split( "xmeta_orientation:" )[1] );
+				
+			}
+			
+			if ( !xmeta ) {
+			
+				/*
+				videoWidth = int( o[String( 0 + a )] );
+				videoHeight = int( o[String( 1 + a )] );
+				videoBW = Number( o[String( 2 + a )] );
+				videoFPS = int( o[String( 3 + a )] );
+				audioBW = Number( o["7"] );
+				*/
+				
+			}
+			
+			module.onMetaData( videoWidth, videoHeight, videoFPS, videoBW, audioBW );
+			onResize();
+			
+		}
+		
+		private function zoomClick():void {
+			
+			zoom = !zoom;
+			onResize();
+			
+		}
+		
+		private function bufferFull():void {
+			
+			if ( stageVideo ) bgAlpha = 0;
+			this.dispatchEvent( new Event( Event.VIDEO_FRAME ) );
+			
+		}
+		
+		public function deviceSelected( device:Object, mode:Object ):void {
+			
+			if ( device && ( int( device.@type ) == DeviceHelper.DEVICE_TYPE_WEBCAM ) ) {
+				
+				trace( 'device', typeof device, device.toXMLString() );
+				
+				if ( camera ) {
+					
+					if ( camera.index != int( device.@index ) ) {
+						
+						camera = Camera.getCamera( String( device.@index ) );
+						video.attachCamera( camera );
+						
+					}
+					
+				} else {
+					
+					camera = Camera.getCamera( String( device.@index ) );
+					video.attachCamera( camera );
+					
+				}
+				
+				//if ( camera && ( camera.index != int( device.@index ) ) {
+				
+				if ( mode ) {
+					
+					trace( 'mode', typeof mode, mode.toXMLString() );
+					videoWidth = int( mode.width );
+					videoHeight = int( mode.height );
+					camera.setMode( int( mode.width ), int( mode.height ), Number( mode.fps ) );
+					camera.setQuality( 0, 100 );
+					
+				}
+				
+				onResize();
+				
+			} else {
+				
+				video.attachCamera( null );
+				video.clear();
+				camera = null;
+				
+			}
+			
+		}
+		
+		public function deviceConnecting():void {
+			
+			if ( camera ) {
+				
+				video.attachCamera( null );
+				video.clear();
+				//camera = null;
+				
+			}
+			
+
+		}
+		
+		protected function muteClick():void {
+			
+			muted = !muted;
+			
+			if ( ns ) {
+				
+				ns.volume = int( !muted );
+				
+			}
+			
+		}
+		
+		public function reattachNetStream():void {
+			
+			if ( video && ns ) video.attachNetStream( ns );
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+	<s:BitmapImage id="snapshot" source="{ snapshotPath }" width="100%" height="100%" scaleMode="zoom" alpha=".15" visible="{ !connecting &amp;&amp; !connected }" />
+	
+	<s:SpriteVisualElement id="videoHolder" width="100%" height="100%" />
+	
+	<s:Group width="100%" height="100%" cacheAsBitmap="true">
+		
+		<s:Rect width="100%" height="80">
+			<s:fill>
+				<mx:LinearGradient rotation="90">
+					<mx:entries>
+						<mx:GradientEntry color="#000000" alpha=".75" />
+						<mx:GradientEntry color="#000000" alpha="0" />
+					</mx:entries>
+				</mx:LinearGradient>
+			</s:fill>
+		</s:Rect>
+		
+	</s:Group>
+	
+	<s:Group width="100%" height="100%" cacheAsBitmap="true">
+		
+		<s:Rect width="100%" height="60" bottom="0">
+			<s:fill>
+				<mx:LinearGradient rotation="90">
+					<mx:entries>
+						<mx:GradientEntry color="#000000" alpha="0" />
+						<mx:GradientEntry color="#000000" alpha=".75" />
+					</mx:entries>
+				</mx:LinearGradient>
+			</s:fill>
+		</s:Rect>
+		
+	</s:Group>
+	
+	<s:HGroup
+		width="100%" height="60" bottom="0"
+		verticalAlign="middle" horizontalAlign="center"
+		>
+		
+		<views:IconButton icon='@Embed(source="../../../../assets/icon_zoom.png")' toolTip="Zoom In" click="zoomClick()" includeInLayout="{ !zoom }" visible="{ !zoom }" />
+		<views:IconButton icon='@Embed(source="../../../../assets/icon_zoomout.png")' toolTip="Zoom Out" click="zoomClick()" includeInLayout="{ zoom }" visible="{ zoom }" />
+		<views:IconButton icon='@Embed(source="../../../../assets/icon_mute.png")' toolTip="Mute audio preview" click="muteClick()" includeInLayout="{ !muted }" visible="{ !muted }" />
+		<views:IconButton icon='@Embed(source="../../../../assets/icon_unmute.png")' toolTip="Unmute audio preview" click="muteClick()" includeInLayout="{ muted }" visible="{ muted }" />
+		
+	</s:HGroup>
+	
+</s:BorderContainer>

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<app:MainWindowBase
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	xmlns:app="*"
+	xmlns:view="view.*"
+	contentBackgroundAlpha="0"
+	backgroundAlpha="0"
+	styleName="global" xmlns:views="live.cameleon.views.*"
+	>
+	
+	<fx:Declarations>
+		<mx:ArrayCollection id="cameraDevices" />
+		<mx:ArrayCollection id="audioDevices" />
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+		
+		import flash.display.BitmapData;
+		import mx.events.FlexEvent;
+		import live.cameleon.settings.BindableSettings;
+		
+		override public function getStreamBitmapData():BitmapData {
+			
+			return streamBox.videoBox.bitmapData;
+			
+		}
+		
+		override protected function init(e:FlexEvent):void {
+			
+			super.init(e);
+			streamBox.module = module;
+			header.module = module;
+			footer.module = module;
+			settingsWindow.module = module;
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+	<app:filters>
+		<s:DropShadowFilter angle="90" blurX="20" blurY="12" alpha=".5" />
+	</app:filters>
+	
+	<s:Rect width="100%" height="100%" id="bgRect" radiusX="6" radiusY="6" left="{ BindableSettings.MAIN_WINDOW_PADDING }" right="{ BindableSettings.MAIN_WINDOW_PADDING }" bottom="{ BindableSettings.MAIN_WINDOW_PADDING }" top="{ BindableSettings.MAIN_WINDOW_PADDING }">
+		<s:fill>
+			<mx:SolidColor color="{ BindableSettings.BG_COLOR }" />
+		</s:fill>
+	</s:Rect>
+		
+	<s:VGroup width="100%" height="100%" gap="0" padding="{ BindableSettings.MAIN_WINDOW_PADDING }" enabled="{ !processing }">
+		
+		<views:Header id="header" title="{ windowTitle }" mouseMove="onMouseMove()" mouseDown="onMouseDown()" mouseUp="onMouseUp()" error="@{ hasError }" warning="@{ hasWarning }" />
+		
+		<s:HGroup
+			width="100%"
+			height="100%"
+			gap="10"
+			paddingBottom="0"
+			enabled="{ !processing }"
+			>
+			
+			<views:YouTubePanel
+				id="youtubePanel"
+				height="100%"
+				currentState="{ youtubeState }"
+				title="@{ broadcastTitle }"
+				defaultYouTubeLiveBroadcastId="{ defaultYouTubeLiveBroadcastId }"
+				defaultYouTubeLiveStreamId="{ defaultYouTubeLiveStreamId }"
+				>
+			
+			</views:YouTubePanel>
+			
+			<s:Group
+				id="lineGroup1"
+				width="1" height="100%"
+				>
+				
+				<s:Line height="{ lineGroup1.height - 10 }">
+					<s:stroke>
+						<mx:SolidColorStroke weight="1" color="#ffffff" alpha=".1" />
+					</s:stroke>
+				</s:Line>
+				
+			</s:Group>
+			
+			<views:StreamBox
+				id="streamBox"
+				width="100%"
+				height="100%"
+				connected="{ connected }" connecting="{ connecting }"
+				zoom="@{ zoom }"
+				title="@{ broadcastTitle }"
+				fbCompatible="@{ fbCompatible }"
+				canStart="{ canStart }"
+			>
+				
+			</views:StreamBox>
+			
+			<s:Group
+				width="1" height="100%"
+				>
+				
+				<s:Line height="{ lineGroup1.height - 10 }">
+					<s:stroke>
+						<mx:SolidColorStroke weight="1" color="#ffffff" alpha=".1" />
+					</s:stroke>
+				</s:Line>
+				
+			</s:Group>
+			
+			<views:FacebookPanel
+				id="facebookPanel"
+				fbIncompatible="{ !fbCompatible }"
+				height="100%"
+				title="@{ broadcastTitle }"
+				description="@{ broadcastDescription }"
+				>
+				
+			</views:FacebookPanel>
+				
+		</s:HGroup>
+		
+		<views:Footer id="footer" serverState="{ serverState }" />
+		
+	</s:VGroup>
+	
+</app:MainWindowBase>

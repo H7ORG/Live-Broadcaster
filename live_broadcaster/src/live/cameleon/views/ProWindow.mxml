@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<views:ModalWindow
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	xmlns:views="live.cameleon.views.*"
+	height="200" width="500"
+	title="PRO License Required"
+	canClose="true"
+	>
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+		
+		import live.cameleon.settings.URLs;
+		
+		protected function purchaseLicense():void {
+			
+			module.purchaseLicense();
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+	<views:content>
+		
+		<s:VGroup width="100%" height="100%" gap="10" paddingLeft="20" paddingRight="20" verticalAlign="top">
+			
+			<s:Label width="100%" textAlign="center" text="This feature requires a PRO License. If you've already purchased a PRO License click on the Settings icon at the top right corner of the main application window and follow the instructions to verify your license, or click the button below to upgrade Live Broadcaster to PRO" />
+			
+			<mx:Spacer />
+			
+			<s:HGroup width="100%" horizontalAlign="center">
+				
+				<views:ColoredButton label="Purchase License" click="purchaseLicense()" color="#8AD12E" showIcon="false" showLabel="true"  />
+				<views:ColoredButton label="Close" click="close()" color="#3F424C" showIcon="false" showLabel="true"  />
+				
+			</s:HGroup>
+			
+		</s:VGroup>
+		
+	</views:content>
+	
+</views:ModalWindow>

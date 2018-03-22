@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<views:ModalWindow
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+	xmlns:s="library://ns.adobe.com/flex/spark" 
+	xmlns:mx="library://ns.adobe.com/flex/mx"
+	xmlns:views="live.cameleon.views.*"
+	height="300"
+	height.ccnotfound="240"
+	height.ccnotrunning="280"
+	width="500"
+	title="Cameleon Center"
+	>
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			
+			
+			protected function downloadClick():void {
+				
+				module.visitWebsite();
+				exitClick();
+				
+			}
+			
+			protected function exitClick():void {
+				
+				module.exitAppManual();
+				
+			}
+			
+			protected function startClick():void {
+				
+				module.startCameleonCenter();
+				
+			}
+			
+			protected function retryClick():void {
+				
+				module.retryConnection();
+				this.close();
+				
+			}
+			
+			
+		]]>
+	</fx:Script>
+	
+	<views:states>
+		
+		<mx:State name="ccnotfound" />
+		<mx:State name="ccnotrunning" />
+		
+	</views:states>
+	
+	<views:content>
+		
+		<s:VGroup width="100%" height="100%" gap="10" paddingLeft="20" paddingRight="20" horizontalAlign="center">
+			
+			<s:Label text="Cameleon Center doesn's seem to be installed" styleName="h2" includeIn="ccnotfound" />
+			<mx:Spacer includeIn="ccnotfound" />
+			<s:Label width="100%" text="Cameleon Center is a free media server application and it's required for Live Broadcaster. Please download and install Cameleon Center, then try connecting again" includeIn="ccnotfound" textAlign="center" />
+			<mx:Spacer includeIn="ccnotfound" />
+			<s:HGroup width="100%" horizontalAlign="center" includeIn="ccnotfound">
+				<views:ColoredButton label="Download and Install" color="#3F424C" showIcon="false" showLabel="true" click="downloadClick()" />
+				<views:ColoredButton label="Exit" color="#3F424C" showIcon="false" showLabel="true" click="exitClick()" />
+			</s:HGroup>
+			
+			<s:Label text="Cameleon Center doesn't seem to be running" styleName="h2" includeIn="ccnotrunning" />
+			<mx:Spacer includeIn="ccnotrunning" />
+			<s:Label width="100%" text="Cameleon Center is a free media server application and it needs to be running in order for Live Broadcaster to use streaming features" includeIn="ccnotrunning" textAlign="center" />
+			<mx:Spacer includeIn="ccnotrunning" />
+			<s:Label width="100%" text="Click 'Start Cameleon Center' to start the application, then click 'Retry Connection' once it's started successfully" includeIn="ccnotrunning" textAlign="center" />
+			<mx:Spacer includeIn="ccnotrunning" />
+			<s:HGroup width="100%" horizontalAlign="center" includeIn="ccnotrunning">
+				<views:ColoredButton label="Start Cameleon Center" color="#3F424C" showIcon="false" showLabel="true" click="startClick()" />
+				<views:ColoredButton label="Retry Connection" color="#3F424C" showIcon="false" showLabel="true" click="retryClick()" />
+				<views:ColoredButton label="Exit" color="#3F424C" showIcon="false" showLabel="true" click="exitClick()" />
+			</s:HGroup>
+			
+		</s:VGroup>
+		
+	</views:content>
+	
+</views:ModalWindow>

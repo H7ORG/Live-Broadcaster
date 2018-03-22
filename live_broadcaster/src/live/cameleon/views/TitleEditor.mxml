@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:BorderContainer
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	backgroundColor="#ff0000"
+	backgroundAlpha="0"
+	borderVisible="false"
+	creationComplete="init()"
+	>
+	
+	<fx:Declarations>
+		<fx:Boolean id="editing" />
+		<fx:Boolean id="editable" />
+		<fx:String id="title" />
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+		
+		import flash.events.KeyboardEvent;
+		import flash.ui.Keyboard;
+		import flash.events.MouseEvent;
+		
+		protected function init():void {
+			
+			this.parentApplication.addEventListener( MouseEvent.MOUSE_DOWN, mDown );
+			
+		}
+		
+		protected function edit():void {
+			
+			if ( editable ) {
+				
+				editing = true;
+				textInput.setFocus();
+				textInput.selectAll();
+				
+			}
+			
+		}
+		
+		protected function edited():void {
+			
+			if ( editing ) {
+				
+				title = textInput.text;
+				editing = false;
+				
+			}
+			
+		}
+		
+		protected function exit():void {
+			
+			editing = false;
+			textInput.text = title;
+			
+		}
+		
+		protected function keyUp( e:KeyboardEvent ):void {
+			
+			if ( e.charCode == Keyboard.ESCAPE ) {
+				
+				exit();
+				
+			}
+			
+		}
+		
+		protected function mDown( e:MouseEvent ):void {
+			
+			//trace( e.target );
+			if ( e.target.parent && e.target.parent.parent && ( e.target.parent.parent != textInput ) ) exit();
+			
+		}
+			
+		
+		]]>
+	</fx:Script>
+	
+	<s:HGroup
+		width="100%" height="100%"
+		verticalAlign="middle"
+		horizontalAlign="center"
+		visible="{ !editing }"
+		gap="18"
+		mouseDownOutside="edited()"
+		>
+		
+		<s:Label
+			text="{ title }"
+			color="#ffffff"
+			fontSize="21"
+			useHandCursor="{ editable }"
+			buttonMode="{ editable }"
+			click="edit()"
+			toolTip="Click to edit broadcast title"
+		/>
+		
+		<s:Image
+			source='@Embed(source="../../../../assets/icon_edit.png")' smooth="true" scaleX=".4" scaleY=".4"
+			useHandCursor="{ editable }"
+			buttonMode="{ editable }"
+			click="edit()"
+			toolTip="Click to edit broadcast title"
+			includeInLayout="{ editable }"
+			visible="{ editable }"
+		/>
+		
+	</s:HGroup>
+	
+	<s:TextInput
+		id="textInput"
+		width="100%" height="100%"
+		text="{ title }" color="#ffffff"
+		contentBackgroundAlpha="0"
+		textAlign="center"
+		fontSize="21"
+		editable="{ editing }"
+		visible="{ editing }"
+		enter="edited()"
+		keyUp="keyUp( event )"
+		maxChars="32"
+		focusedTextSelectionColor="#3F424C"
+	/>
+	
+</s:BorderContainer>

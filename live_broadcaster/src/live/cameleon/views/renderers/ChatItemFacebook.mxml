@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	width="100%"
+	dataChange="onData()"
+	autoDrawBackground="false"
+	creationComplete="init()"
+	>
+	
+	<fx:Declarations>
+		<fx:Boolean id="chatOwner" />
+		<fx:Boolean id="isPremium" />
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+		
+		import flash.display.Sprite;
+		import org.igazine.apis.facebook.Facebook;
+		import live.cameleon.licenser.Licenser;
+		
+		private var msk:Sprite;
+		
+		protected function init():void {
+			
+			msk = new Sprite();
+			msk.graphics.beginFill( 0 );
+			msk.graphics.drawCircle( 16, 16, 16 );
+			msk.graphics.endFill();
+			
+		}
+		
+		protected function onData():void {
+			
+			if ( data ) {
+				
+				//trace( "!!!!!!!!!!!!!!", data.message, String( data.message ).charCodeAt( 0 ), String( data.message ).charCodeAt( 1 ), String.fromCharCode(String( data.message ).charCodeAt( 0 ))  );
+				userName.text = data.from.name;
+				message.text = data.message;
+				avatar.source = Facebook.getPictureURI( data.from.id );
+				avatar.mask = msk;
+				chatOwner = data.isChatOwner;
+				isPremium = Licenser.instance.isPro;
+			
+			}
+		}
+		
+		protected function avatarComplete():void {
+			
+			avatar.mask = msk;
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+	<s:HGroup width="100%">
+		
+		<s:BitmapImage complete="avatarComplete()" id="avatar" width="32" height="32" smooth="true" />
+		
+		<s:VGroup width="100%">
+			
+			<s:Label id="userName" width="100%" maxDisplayedLines="1" color="#4267B2" />
+			
+			<s:Label id="message" width="100%" maxDisplayedLines="5" fontFamily="OpenSansEmoji" visible="{ isPremium }" includeInLayout="{ isPremium }" />
+			<s:Label id="messageFree" text="Upgrade your account to PRO to see messages" width="100%" maxDisplayedLines="5" fontFamily="OpenSansEmoji" visible="{ !isPremium }" includeInLayout="{ !isPremium }" />
+			<!--<s:TextArea width="100%" maxHeight="40" -->
+			
+		</s:VGroup>
+		
+	</s:HGroup>
+	
+	<s:Ellipse width="31" height="31" visible="{ chatOwner }" x="1" y="1">
+		<s:stroke>
+			<mx:SolidColorStroke color="#4267B2" weight="2" />
+		</s:stroke>
+	</s:Ellipse>
+	
+</s:ItemRenderer>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:HGroup
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+	xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	gap="10"
+	>
+	
+	<fx:Declarations>
+		<fx:String id="text" />
+		<fx:Boolean id="isPro" />
+	</fx:Declarations>
+	
+	<s:BitmapImage smooth="true" scaleX=".5" scaleY=".5" source='@Embed(source="/../assets/icon_info.png")' includeInLayout="{ !isPro }" visible="{ !isPro }" />
+	<s:BitmapImage smooth="true" scaleX=".5" scaleY=".5" source='@Embed(source="/../assets/icon_pro.png")' includeInLayout="{ isPro }" visible="{ isPro }" />
+	
+	<s:Label width="100%" maxDisplayedLines="10" text="{ text }" height="100%" verticalAlign="middle" />
+	
+</s:HGroup>

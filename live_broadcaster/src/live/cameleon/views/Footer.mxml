@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+    xmlns:view="view.*"
+    xmlns:globalView="live.cameleon.view.*"
+	width="100%"
+	height="40" xmlns:views="live.cameleon.views.*"
+	>
+	
+	<fx:Declarations>
+		<fx:String id="serverState" />
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+		
+		import live.cameleon.settings.*;
+		import live.cameleon.modules.FinalModule;
+		import live.cameleon.licenser.Licenser;
+		
+		private var resizerIsMouseDown:Boolean;
+		
+		public var module:FinalModule;
+		
+		protected function resizerMouseDown():void {
+			
+			this.parentApplication.resizerMouseDown();
+			resizerIsMouseDown = true;
+			
+		}
+		
+		protected function resizerMouseUp():void {
+			
+			this.parentApplication.resizerMouseUp();
+			resizerIsMouseDown = false;
+			
+		}
+		
+		protected function logoClick():void {
+			
+			module.visitLink( URLs.LINK_WEBSITE );
+			
+		}
+		
+		protected function facebookClick():void {
+			
+			module.visitLink( URLs.LINK_FACEBOOK );
+			
+		}
+		
+		protected function visitLink():void {
+			
+			module.visitLink( URLs.LINK_WEBSITE );
+			
+		}
+		
+		protected function upgradePro():void {
+			
+			module.visitLink( URLs.LICENSE_PURCHASE );
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+	<s:Rect width="100%" height="100%" topLeftRadiusX="0" topRightRadiusX="0" bottomLeftRadiusX="6" bottomRightRadiusX="6">
+		<s:fill>
+			<mx:SolidColor color="#23252C" />
+		</s:fill>
+	</s:Rect>
+	
+	<s:HGroup width="100%" height="100%">
+		
+		<s:HGroup width="200" height="100%" verticalAlign="middle">
+			
+			<views:ServerStatus currentState="{ serverState }" />
+			
+		</s:HGroup>
+		
+		<s:HGroup width="100%" height="100%" verticalAlign="middle" horizontalAlign="center" gap="10">
+			
+			<s:Image toolTip="Live Streaming Community" useHandCursor="true" buttonMode="true" scaleX=".5" scaleY=".5" smooth="true" source='@Embed(source="../../../../assets/icon_facebook.png")' click="facebookClick()" />
+			
+		</s:HGroup>
+			
+		<s:HGroup width="200" height="100%" verticalAlign="middle" horizontalAlign="right" paddingRight="30" includeInLayout="{ Licenser.instance.isPro }" visible="{ Licenser.instance.isPro }" click="visitLink()" useHandCursor="true" buttonMode="true">
+			
+			<s:Label text="cameleon.live" color="#3F424C" />
+			
+		</s:HGroup>
+		<s:HGroup width="200" height="100%" verticalAlign="middle" horizontalAlign="right" paddingRight="30" visible="{ !Licenser.instance.isPro }" includeInLayout="{ !Licenser.instance.isPro }" useHandCursor="true" buttonMode="true" click="upgradePro()">
+			
+			<s:Label text="Want more features?" color="#cccccc" />
+			<s:BitmapImage source='@Embed(source="../../../../assets/icon_pro.png")' scaleX=".5" scaleY=".5" smooth="true" />
+			<s:Label text="Upgrade to PRO" color="#8AD12E" />
+			
+		</s:HGroup>
+		
+	</s:HGroup>
+	
+	<s:Image
+		source='@Embed(source="../../../../assets/resizer.png")'
+		scaleX=".5" scaleY=".5"
+		right="3" bottom="3"
+		useHandCursor="true" buttonMode="true"
+		mouseDown="resizerMouseDown()"
+		mouseUp="resizerMouseUp()"
+	/>
+	
+</s:Group>

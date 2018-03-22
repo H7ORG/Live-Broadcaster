@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Window
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	alwaysInFront="false"
+	showStatusBar="false"
+	width="500"
+	height="400"
+	windowDeactivate="clickOutside()"
+	closing="closeWindow( event )"
+	minimizable="false"
+	maximizable="false"
+	>
+	
+	<fx:Declarations>
+		<fx:Boolean id="destroyOnClose" />
+		<fx:Boolean id="opened" />
+		<fx:Boolean id="closingStarted" />
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+		
+		import flash.display.DisplayObject;
+		import flash.events.Event;
+		import flash.display.Screen;
+		
+		public var parentObject:DisplayObject;
+		
+		public function show( prnt:DisplayObject ):void {
+			
+			parentObject = prnt;
+			
+			if ( opened ) {
+				
+				this.activate();
+				
+			}
+			
+			opened = true;
+			super.open( true );
+			this.center();
+			
+		}
+		
+		protected function clickOutside():void {
+			
+			//if ( this.visible && !closingStarted ) this.activate();
+			
+		}
+		
+		protected function closeWindow( e:Event ):void {
+			
+			if ( !destroyOnClose ) {
+				
+				e.preventDefault();
+				this.visible = false;
+				
+			} else {
+				
+				
+				
+			}
+			
+		}
+		
+		public function forceClose():void {
+			
+			destroyOnClose = true;
+			this.close();
+			
+		}
+		
+		public function center():void {
+			
+			this.nativeWindow.x = (Screen.mainScreen.bounds.width - this.width)/2;
+			this.nativeWindow.y = (Screen.mainScreen.bounds.height - this.height)/2;
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+	
+</s:Window>

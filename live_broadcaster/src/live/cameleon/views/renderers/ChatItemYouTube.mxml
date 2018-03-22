@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	width="100%"
+	dataChange="onData()"
+	autoDrawBackground="false"
+	creationComplete="init()"
+	>
+	
+	<fx:Declarations>
+		<fx:Boolean id="chatOwner" />
+		<fx:Boolean id="isPremium" />
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+		
+		import org.igazine.apis.youtube.LiveChatMessage;
+		import flash.display.Sprite;
+		import live.cameleon.licenser.Licenser;
+		
+		private var msk:Sprite;
+		
+		protected function init():void {
+			
+			msk = new Sprite();
+			msk.graphics.beginFill( 0 );
+			msk.graphics.drawCircle( 16, 16, 16 );
+			msk.graphics.endFill();
+			
+		}
+		
+		protected function avatarComplete():void {
+			
+			avatar.mask = msk;
+			
+		}
+		
+		protected function onData():void {
+			
+			if ( data ) {
+			
+				var d:LiveChatMessage = this.data as LiveChatMessage;
+				
+				if ( d && d.authorDetails && d.snippet ) {
+					
+					if ( d.snippet.type == "" ) {}
+					
+					avatar.source = d.authorDetails.profileImageUrl;
+					userName.text = d.authorDetails.displayName;
+					message.text = d.snippet.textMessageDetails.messageText;
+					chatOwner = d.authorDetails.isChatOwner;
+					avatar.mask = msk;
+					isPremium = Licenser.instance.isPro;
+					
+				}
+				
+				
+			}
+		}
+		
+		]]>
+	</fx:Script>
+	
+	<s:HGroup width="100%">
+		
+		<s:BitmapImage complete="avatarComplete()" id="avatar" width="32" height="32" smooth="true" />
+		
+		<s:VGroup width="100%">
+			
+			<s:Label id="userName" width="100%" maxDisplayedLines="1" color="#D40101" />
+			
+			<s:Label id="message" width="100%" maxDisplayedLines="5" fontFamily="OpenSansEmoji" visible="{ isPremium }" includeInLayout="{ isPremium }" />
+			<s:Label id="messageFree" text="Upgrade your account to PRO to see messages" width="100%" maxDisplayedLines="5" fontFamily="OpenSansEmoji" visible="{ !isPremium }" includeInLayout="{ !isPremium }" />
+			
+		</s:VGroup>
+		
+	</s:HGroup>
+	
+	<s:Ellipse width="31" height="31" visible="{ chatOwner }" x="1" y="1">
+		<s:stroke>
+			<mx:SolidColorStroke color="#D40101" weight="2" />
+		</s:stroke>
+	</s:Ellipse>
+	
+</s:ItemRenderer>

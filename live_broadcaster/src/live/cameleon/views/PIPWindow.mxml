@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Window
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	xmlns:view="view.*"
+	width="300"
+	height="500"
+	minWidth="300"
+	minHeight="400"
+	maxWidth="400"
+	systemChrome="none"
+	transparent="true"
+	showStatusBar="false"
+	backgroundAlpha="0"
+	contentBackgroundAlpha="0"
+	currentState="youtube"
+	creationComplete="init()"
+	resize="onResize()"
+	alwaysInFront="true" xmlns:views="live.cameleon.views.*"
+	>
+	
+	<fx:Declarations>
+		<fx:String id="concurrentViewersString">0</fx:String>
+		<fx:String id="likeCountString">0</fx:String>
+		<fx:String id="secondsLeftString">0</fx:String>
+		<fx:String id="duration">REGULAR</fx:String>
+		<fx:Boolean id="maxScroll" />
+		<mx:ArrayCollection id="messageList" />
+		<fx:int id="videoWidth">0</fx:int>
+		<fx:int id="videoHeight">0</fx:int>
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import flash.desktop.Clipboard;
+			import flash.desktop.ClipboardFormats;
+			import flash.events.Event;
+			import flash.geom.Rectangle;
+			import flash.media.Video;
+			import flash.net.NetStream;
+			import flash.net.URLRequest;
+			import flash.net.navigateToURL;
+			
+			import live.cameleon.utils.Utils;
+			
+			import live.cameleon.settings.BindableSettings;
+			
+			import live.cameleon.views.skins.VScrollBarSkin;
+		
+		
+		protected var video:Video;
+		
+		public var pipFunction:Function;
+		public var weblink:String;
+		
+		protected function init():void {
+			
+			video = new Video();
+			videoHolder.addChild( video );
+			video.width = videoHolder.width;
+			video.height = videoHolder.height;
+			video.smoothing = true;
+			//video.opaqueBackground = 0xff0000;
+			
+		}
+		
+		public function onResize():void {
+			
+			//trace( videoWidth, videoHeight );
+			
+			//videoHolder.width = this.width;
+			//videoHolder.height = this.height;
+			
+			if ( video ) {
+				
+				calculateVideoSize( videoWidth, videoHeight );
+				
+			}
+			
+			this.validateNow();
+			
+		}
+		
+		private function calculateVideoSize( w:int, h:int ):void {
+			
+			var r:Rectangle = Utils.calculateSize( new Rectangle(0, 0, container.width, videoHolder.height), new Rectangle( 0, 0, w, h ), false );
+			//trace( r );
+			
+			video.width = r.width;
+			video.height = r.height;
+			video.x = r.x;
+			video.y = r.y;
+			
+			//msk.width = videoHolder.width;
+			//msk.height = videoHolder.height;
+				
+		}
+		
+		protected function resizerMouseDown():void {
+			
+			this.nativeWindow.startResize("BR");
+			
+		}
+		
+		protected function resizerMouseUp():void {}
+		
+		protected function closeWindow():void {
+			
+			pipFunction.call(this, false);
+			
+		}
+		
+		protected function onMouseMove():void {}
+		
+		protected function onMouseDown():void {
+			
+			this.nativeWindow.startMove();
+		
+		}
+		
+		protected function onMouseUp():void {
+			
+			onResize();
+			
+		}
+		
+		protected function scrollToBottom():void {
+			
+			listMessages.scroller.verticalScrollBar.value = listMessages.scroller.verticalScrollBar.maximum;
+			
+		}
+		
+		protected function listInit():void {
+			
+			listMessages.scroller.verticalScrollBar.addEventListener( Event.CHANGE, scrollChange );
+			listMessages.scroller.verticalScrollBar.setStyle( "skinClass", VScrollBarSkin );
+			
+		}
+		
+		protected function scrollChange( e:Event ):void {
+			
+			if ( listMessages.scroller.verticalScrollBar.value == listMessages.scroller.verticalScrollBar.maximum ) {
+				
+				maxScroll = true;
+				
+			} else {
+				
+				maxScroll = false;
+				
+			}
+			
+		}
+		
+		public function attachNetStream( ns:NetStream ):void {
+			
+			video.attachNetStream( ns );
+			
+		}
+		
+		public function setMessages( messages:Array ):void {
+			
+			messageList.source = messages;
+			scrollToBottom();
+			
+		}
+		
+		private function copyLink():void {
+			
+			Clipboard.generalClipboard.setData( ClipboardFormats.TEXT_FORMAT, weblink );
+			
+		}
+		
+		private function openLink():void {
+			
+			navigateToURL( new URLRequest( weblink ) );
+			
+		}
+			
+		
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<mx:State name="youtube" />
+		<mx:State name="facebook" />
+	</s:states>
+	
+	<s:VGroup padding="20" width="100%" height="100%">
+		
+		<s:BorderContainer id="container" width="100%" height="100%" cornerRadius="6" borderVisible="false" backgroundColor="{ BindableSettings.BG_COLOR }">
+			
+			<s:filters>
+				<s:DropShadowFilter angle="90" blurX="20" blurY="12" alpha=".5" />
+			</s:filters>
+			
+			<s:layout>
+				<s:VerticalLayout />
+			</s:layout>
+			
+			<s:Group id="videoGroup" width="100%" height="{ videoGroup.width * 0.5625 }">
+				
+				<s:Rect width="100%" height="100%">
+					<s:fill>
+						<mx:SolidColor color="#1A1B1E" />
+					</s:fill>
+				</s:Rect>
+				
+				<s:SpriteVisualElement id="videoHolder" width="100%" height="100%" />
+				
+				<s:Rect width="100%" height="40">
+					<s:fill>
+						<mx:LinearGradient rotation="90">
+							<mx:entries>
+								<mx:GradientEntry color="#000000" alpha=".75" />
+								<mx:GradientEntry color="#000000" alpha="0" />
+							</mx:entries>
+						</mx:LinearGradient>
+					</s:fill>
+				</s:Rect>
+				
+				<s:HGroup width="100%" height="40" verticalAlign="middle" paddingLeft="14" gap="10" paddingRight="14" mouseMove="onMouseMove()" mouseDown="onMouseDown()" mouseUp="onMouseUp()">
+					
+					<s:filters>
+						<s:DropShadowFilter angle="90" blurX="0" blurY="0" alpha=".5" distance="1" />
+					</s:filters>
+					
+					<views:HeaderButton
+						id="closeButton"
+						width="12" height="12"
+						icon='@Embed(source="../../../../assets/icon_windowtop.png")'
+						hoverIcon='@Embed(source="../../../../assets/icon_close.png")'
+						click="closeWindow()"
+					/>
+					
+					<s:Label styleName="h3" text.facebook="Facebook" text.youtube="YouTube" width="100%" />
+					
+					<s:BitmapImage source='@Embed(source="../../../../assets/icon_view.png")' scaleX=".5" scaleY=".5" />
+					<s:Label text="{ concurrentViewersString }" lineHeight="11" height="11" />
+					<mx:Spacer width="0" />
+					<s:BitmapImage source='@Embed(source="../../../../assets/icon_like.png")' scaleX=".5" scaleY=".5" />
+					<s:Label text="{ likeCountString }" lineHeight="11" height="11" />
+					
+				</s:HGroup>
+				
+			</s:Group>
+			
+			<s:VGroup width="100%" height="100%" paddingLeft="14" paddingRight="14">
+				
+				<s:Label width="100%" text="No comments yet" styleName="h3" includeInLayout.youtube="false" visible.youtube="false" includeInLayout.facebook="{ ( messageList.length == 0 ) }" visible.facebook="{ ( messageList.length == 0 ) }" />
+				<s:Label width="100%" text="New comments will appear here" includeInLayout.youtube="false" visible.youtube="false" includeInLayout.facebook="{ ( messageList.length == 0 ) }" visible.facebook="{ ( messageList.length == 0 ) }" />
+				
+				<s:Label width="100%" text="No messages yet" styleName="h3" includeInLayout.facebook="false" visible.facebook="false" includeInLayout.youtube="{ ( messageList.length == 0 ) }" visible.youtube="{ ( messageList.length == 0 ) }" />
+				<s:Label width="100%" text="New messages will appear here" includeInLayout.facebook="false" visible.facebook="false" includeInLayout.youtube="{ ( messageList.length == 0 ) }" visible.youtube="{ ( messageList.length == 0 ) }" />
+				
+				<s:List
+					id="listMessages"
+					width="100%" height="100%"
+					dataProvider="{ messageList }"
+					itemRenderer.facebook="live.cameleon.views.renderers.ChatItemFacebook"
+					itemRenderer.youtube="live.cameleon.views.renderers.ChatItemYouTube"
+					borderVisible="false"
+					horizontalScrollPolicy="off"
+					updateComplete="scrollToBottom()"
+					creationComplete="listInit()"
+					useVirtualLayout="true"
+					>
+					<s:layout>
+						<s:VerticalLayout gap="10" />
+					</s:layout>
+				</s:List>
+				
+			</s:VGroup>
+			
+			<s:HGroup width="100%" height="30" verticalAlign="bottom" paddingRight="3" paddingBottom="3" paddingLeft="3" gap="3">
+				
+				<views:ColoredButton
+					width="40" height="30"
+					color="#3F424C"
+					icon='@Embed(source="../../../../assets/icon_public.png")'
+					showIcon="true"
+					showLabel="false"
+					enabled="true"
+					click="openLink()"
+					toolTip="Open live stream in browser"
+				/>
+				
+				<views:ColoredButton
+					showIcon="true"
+					showLabel="false"
+					width="40" height="30"
+					color="#3F424C"
+					icon='@Embed(source="../../../../assets/icon_link.png")'
+					enabled="true"
+					click="copyLink()"
+					toolTip="Copy web link code to clipboard"
+				/>
+				
+				<!--
+				<view:ColoredButton
+					id="buttonEmbed"
+					showIcon="true"
+					showLabel="false"
+					width="30" height="30"
+					color="#3F424C"
+					icon='@Embed(source="../../../../assets/icon_embed.png")'
+					enabled="{ embed }"
+					click="copyEmbedCode()"
+					toolTip="Copy HTML embed code to clipboard"
+				/>
+				-->
+				
+				<s:Label width="100%" textAlign="center" text="{ secondsLeftString }" color="#4267B2" includeInLayout.facebook="{ duration == 'REGULAR' }" visible.facebook="{ duration == 'REGULAR' }" includeInLayout.youtube="false" visible.youtube="false" toolTip="Remaining time" verticalAlign="middle" height="100%" />
+				
+				<mx:Spacer width="100%" includeInLayout.youtube="true" visible.youtube="true" includeInLayout.facebook="false" visible.facebook="false" />
+				
+				<s:Image
+					source='@Embed(source="../../../../assets/resizer.png")'
+					scaleX=".5" scaleY=".5"
+					useHandCursor="true" buttonMode="true"
+					mouseDown="resizerMouseDown()"
+					mouseUp="resizerMouseUp()"
+				/>
+				
+			</s:HGroup>
+			
+		</s:BorderContainer>
+		
+	</s:VGroup>
+</s:Window>

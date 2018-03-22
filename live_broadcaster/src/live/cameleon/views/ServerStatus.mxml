@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:HGroup
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	verticalAlign="middle"
+	paddingLeft="20"
+	width="100%"
+	height="100%"
+	currentState="offline"
+	gap="10"
+	>
+	
+	<fx:Declarations>
+		<fx:String id="serverState" />
+	</fx:Declarations>
+	
+	<s:states>
+		<mx:State name="offline" />
+		<mx:State name="running" />
+		<mx:State name="error" />
+	</s:states>
+	
+	<s:Ellipse width="6" height="6">
+		<s:fill>
+			<mx:SolidColor color.offline="#ffffff" alpha.offline=".3" color.running="#8AD12E" alpha.running="1" color.error="#FB4029" alpha.error="1" />
+		</s:fill>
+	</s:Ellipse>
+	
+	<s:Label
+		styleName="small"
+		width="100%"
+		color="#ffffff"
+		alpha=".3"
+		text.offline="Cameleon Center: Offline"
+		text.running="Cameleon Center: OK"
+		text.error="Cameleon Center: ERROR"
+		toolTip.error="Restart Live Broadcaster to start Cameleon Center. If this problem persists, please contact us"
+	/>
+	
+</s:HGroup>

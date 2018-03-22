@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:HGroup
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+	xmlns:mx="library://ns.adobe.com/flex/halo"
+	xmlns:view="view.*"
+	width="100%"
+	height="60"
+	creationComplete="init()" xmlns:views="live.cameleon.views.*"
+	>
+	
+	<fx:Declarations>
+		<fx:String id="title" />
+		<fx:String id="toolTipText" />
+		<fx:Boolean id="error" />
+		<fx:Boolean id="warning" />
+		<fx:Boolean id="streaming" />
+		<fx:Boolean id="hasConnection" />
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+		
+		import flash.events.MouseEvent;
+		import live.cameleon.licenser.Licenser;
+		import live.cameleon.modules.FinalModule;
+		import live.cameleon.settings.Application;
+		
+		public var module:FinalModule;
+		
+		protected function init():void {
+			
+			//toolTipText = "v" + Version.Major + "." + Version.Minor + "." + Version.Build + " " + Application.APP_NAME_ADDITION;
+			
+		}
+		
+		protected function exitAppManual():void {
+			
+			module.exitAppManual();
+			
+		}
+		
+		protected function minimizeApp():void {
+			
+			module.minimizeApp();
+			
+		}
+		
+		protected function maximizeApp( e:MouseEvent ):void {
+			
+			module.maximizeApp( e.altKey );
+			
+		}
+		
+		protected function pip():void {
+			
+			module.pip( true );
+			
+		}
+		
+		protected function showSettings():void {
+			
+			module.showSettings();
+			
+		}
+		
+		protected function showHelp():void {
+			
+			module.showHelp();
+			
+		}
+		
+		protected function toggleLog():void {
+			
+			error = false;
+			warning = false;
+			
+			module.showLog();
+			
+		}
+		
+		protected function dblClick():void {
+			
+			module.maximizeApp( false );
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+	<s:HGroup height="100%" verticalAlign="middle" paddingLeft="20" gap="10" width="150">
+		
+		<views:HeaderButton
+			id="closeButton"
+			width="12" height="12"
+			icon='@Embed(source="../../../../assets/icon_windowtop.png")'
+			hoverIcon='@Embed(source="../../../../assets/icon_close.png")'
+			click="exitAppManual();"
+		/>
+		
+		<views:HeaderButton
+			id="minimizeButton"
+			width="12" height="12"
+			icon='@Embed(source="../../../../assets/icon_windowtop.png")'
+			hoverIcon='@Embed(source="../../../../assets/icon_minimize.png")'
+			click="minimizeApp()"
+		/>
+		
+		<views:HeaderButton
+			id="maximizeButton"
+			width="12" height="12"
+			icon='@Embed(source="../../../../assets/icon_windowtop.png")'
+			hoverIcon='@Embed(source="../../../../assets/icon_maximize.png")'
+			click="maximizeApp( event )"
+		/>
+		
+		<views:HeaderButton
+			id="pipButton"
+			toolTip="Enter Picture-in-picture mode"
+			width="12" height="12"
+			icon='@Embed(source="../../../../assets/icon_windowtop.png")'
+			hoverIcon='@Embed(source="../../../../assets/icon_pip.png")'
+			click="pip()"
+			enabled="{ streaming &amp;&amp; hasConnection }"
+		/>
+		
+	</s:HGroup>
+	
+	<s:HGroup
+		width="100%" height="100%"
+		horizontalAlign="center"
+		verticalAlign="middle"
+		doubleClickEnabled="true"
+		doubleClick="dblClick()"
+		>
+		
+		<s:BitmapImage scaleX=".6" scaleY=".6" smooth="true" source='@Embed(source="../../../../assets/logo_small.png")' />
+		<s:Label text="{ title }" styleName="h2" toolTip="{ toolTipText }" />
+		<s:BitmapImage scaleX=".5" scaleY=".5" includeInLayout="{ Licenser.instance.isPro }" visible="{ Licenser.instance.isPro }" smooth="true" source='@Embed(source="../../../../assets/pro.png")' />
+		
+	</s:HGroup>
+	
+	<s:HGroup
+		height="100%" paddingRight="8"
+		verticalAlign="middle"
+		horizontalAlign="right"
+		width="150"
+		>
+		
+		<views:HeaderButton
+			id="helpButton"
+			icon='@Embed(source="../../../../assets/icon_help.png")'
+			hoverIcon='@Embed(source="../../../../assets/icon_help.png")'
+			click="showHelp()"
+		/>
+		
+		<views:HeaderButton
+			id="logsButton"
+			icon='@Embed(source="../../../../assets/icon_logs.png")'
+			hoverIcon='@Embed(source="../../../../assets/icon_logs.png")'
+			error="{ error }"
+			warning="{ warning }"
+			click="toggleLog()"
+		/>
+		
+		<views:HeaderButton
+			id="settingsButton"
+			icon='@Embed(source="../../../../assets/icon_settings.png")'
+			hoverIcon='@Embed(source="../../../../assets/icon_settings.png")'
+			click="showSettings()"
+		/>
+		
+	</s:HGroup>
+	
+</s:HGroup>

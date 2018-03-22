@@ -1,0 +1,576 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:VGroup
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	xmlns:views="live.cameleon.views.*"
+	gap="0"
+	creationComplete="init()"
+	stateChangeComplete="currentStateChanged()"
+	resize="onResize()"
+	>
+	
+	<fx:Declarations>
+		<fx:Boolean id="inited" />
+		<fx:Boolean id="connecting" />
+		<fx:Boolean id="connected" />
+		<fx:Boolean id="zoom" />
+		<fx:Boolean id="autoselect" />
+		<mx:XMLListCollection id="cameraList" />
+		<mx:XMLListCollection id="microphoneList" />
+		<mx:XMLListCollection id="videoModes" />
+		<fx:XML id="qualities">
+			<root>
+				<quality>
+					<label>Medium (1 Mbps)</label>
+					<value>1000</value>
+				</quality>
+				<quality>
+					<label>High (1.5 Mbps)</label>
+					<value>1500</value>
+				</quality>
+			</root>
+		</fx:XML>
+		<mx:XMLListCollection id="qualityList" source="{ qualities.quality }" />
+		<fx:String id="title" />
+		<fx:Boolean id="editable">true</fx:Boolean>
+		<fx:int id="videoWidth" />
+		<fx:int id="videoHeight" />
+		<fx:int id="videoFPS" />
+		<fx:Number id="videoBW" />
+		<fx:Number id="audioBW" />
+		<fx:int id="actionGroupWidth">30</fx:int>
+		
+		<fx:Boolean id="error" />
+		<fx:Boolean id="warning" />
+		<fx:Boolean id="canStart" />
+		<fx:Boolean id="logVisible" />
+		<fx:Boolean id="fbCompatible" />
+		<fx:Boolean id="fbCompatibilityEnabled" />
+	</fx:Declarations>
+	
+	<s:states>
+		<mx:State name="disabled" />
+		<mx:State name="connect" />
+		<mx:State name="connecting" />
+		<mx:State name="stop" />
+	</s:states>
+	
+	<fx:Script>
+		<![CDATA[
+		
+		import flash.display.DisplayObject;
+		import flash.events.Event;
+		import live.cameleon.licenser.Licenser;
+		import live.cameleon.system.Os;
+		import live.cameleon.modules.FinalModule;
+		import mx.collections.ArrayCollection;
+		import org.igazine.apis.youtube.YouTubeHelper;
+		
+		private var cameraSettings:Object;
+		private var dccw:DesktopCaptureConfigureWindow;
+		
+		public var module:FinalModule;
+		
+		private function init():void {
+			
+			inited = true;
+			
+			videoBox.module = module;
+			
+			startButton.streamBox = this;
+			videoBox.addEventListener( Event.VIDEO_FRAME, videoFrame);
+			
+			if ( cameraSettings ) {
+				
+				setDefaultDevices();
+				
+			}
+			
+			dccw = new DesktopCaptureConfigureWindow();
+			dccw.isMac = Os.isMac;
+			dccw.addEventListener( Event.CLOSE, dccwClosed );
+			
+		}
+		
+		private function videoFrame( e:Event ):void {
+			
+			this.dispatchEvent( e );
+			
+		}
+		
+		protected function videoInputChange():void {
+			
+			module.videoDeviceChanged( videoSelector.selectedItem );
+			settingsChange();
+			
+		}
+		
+		protected function audioInputChange():void {
+			
+			module.audioDeviceChanged( audioSelector.selectedItem );
+			settingsChange();
+			
+		}
+		
+		protected function videoSettingsChange():void {
+			
+			//this.parentApplication.videoSettingsChange( audioSelector.selectedIndex );
+			//qualityList
+			
+			qualities = YouTubeHelper.getQualities( XML( modeSelector.selectedItem ).height, XML( modeSelector.selectedItem ).fps, Licenser.instance.isPro );
+			qualityList.source = qualities.quality;
+			qualitySelector.dataProvider = qualityList;
+			//trace( qualities );
+			
+			checkFBCompatibility();
+			
+			if ( autoselect ) qualitySelector.selectedIndex = cameraSettings.quality;
+			
+			settingsChange();
+			
+		}
+		
+		protected function checkFBCompatibility():void {
+			
+			fbCompatible = ( fbCompatibilityEnabled || ( ( int( XML( modeSelector.selectedItem ).height ) <= 720 ) && ( int( XML( modeSelector.selectedItem ).fps ) < 60 ) ) );
+			module.facebookPanel.fbIncompatible = !fbCompatible;
+			
+		}
+		
+		protected function fbCompatibilityClick():void {
+			
+			checkFBCompatibility();
+			
+		}
+		
+		protected function streamQualityChange():void {
+			
+			//this.parentApplication.streamQualityChange( audioSelector.selectedIndex );
+			settingsChange();
+			
+		}
+		
+		protected function settingsChange():void {
+			
+			if ( ( videoSelector.selectedIndex >= 0 ) && ( audioSelector.selectedIndex >= 0 ) && ( modeSelector.selectedIndex >= 0 ) && ( qualitySelector.selectedIndex >= 0 ) ) {
+				
+				startButton.setState( "connect" );
+				
+			} else {
+				
+				startButton.setState( "disabled" );
+				
+			}
+			
+			//videoBox.deviceSelected( videoSelector.selectedItem, modeSelector.selectedItem );
+			
+		}
+		
+		public function connectDevice():void {
+			
+			editable = false;
+			error = false;
+			warning = false;
+			logVisible = false;
+			
+			//videoBox.deviceConnecting();
+			
+			trace ( videoSelector.selectedItem.toXMLString() );
+			
+			module.connectDevice( { video:String( videoSelector.selectedItem.@label ), audio:String( audioSelector.selectedItem.@label ), mode:XML( modeSelector.selectedItem ), quality:int( qualitySelector.selectedIndex ), type:String( videoSelector.selectedItem.@type ), fb:fbCompatibilityEnabled, mouse:int( videoSelector.selectedItem.@mouse ), mouseclick:int( videoSelector.selectedItem.@mouseclick ) } );
+			
+		}
+		
+		public function disconnectDevice():void {
+			
+			editable = true;
+			videoBox.createBitmap();
+			module.disconnectDevice( );
+			
+		}
+		
+		public function connectStream( address:String, streamName:String):void {
+			
+			videoBox.connectStream( address, streamName );
+			
+		}
+		
+		public function disconnectStream( ):void {
+			
+			editable = true;
+			videoBox.disconnectStream( );
+			
+		}
+		
+		private function currentStateChanged():void {
+			
+			startButton.setState( this.currentState );
+			
+		}
+		
+		public function onResize():void {
+			
+			//videoBox.onResize();
+			
+		}
+		
+		public function removeVideo():void {
+			
+			editable = true;
+			videoBox.removeVideo();
+			
+		}
+		
+		public function setCameraSettings( settings:Object ):void {
+			
+			cameraSettings = settings;
+			
+			//for ( var i:String in cameraSettings ) trace( "\t\t\t\t", i , cameraSettings[i] );
+			
+			if ( inited && cameraSettings ) {
+				
+				autoselect = true;
+				setDefaultDevices();
+				
+			}
+			
+		}
+		
+		public function setVideoModes( xmlList:XMLList ):void {
+			
+			videoModes.source = xmlList;
+			
+			if ( cameraSettings ) {
+				
+				setDefaultModes();
+				
+			}
+			
+		}
+		
+		protected function setDefaultModes():void {
+			
+			if ( cameraSettings ) {
+				
+				var i:int;
+				
+				for ( i = 0; i < videoModes.length; i++ ) {
+					
+					//trace( "+++++++++++++++++", videoModes.getItemAt( i ).label );
+					
+					//if ( videoModes.getItemAt( i ).label == String( XML( cameraSettings.mode ).label ) ) {
+					if ( videoModes.getItemAt( i ).label == String( cameraSettings.label ) ) {
+						
+						modeSelector.selectedIndex = i;
+						videoSettingsChange();
+						break;
+						
+					}
+					
+				}
+				
+			}
+		}
+		
+		protected function setDefaultDevices():void {
+			
+			if ( cameraSettings ) {
+				
+				var i:int;
+				
+				for ( i = 0; i < cameraList.length; i++ ) {
+					
+					if ( cameraList.getItemAt( i ).@label == String( cameraSettings.video ) ) {
+						
+						videoSelector.selectedIndex = i;
+						videoInputChange();
+						break;
+						
+					}
+					
+				}
+				
+				for ( i = 0; i < microphoneList.length; i++ ) {
+					
+					if ( microphoneList.getItemAt( i ).@label == String( cameraSettings.audio ) ) {
+						audioSelector.selectedIndex = i;
+						audioInputChange();
+						break;
+					}
+					
+				}
+				
+			}
+			
+		}
+		
+		protected function refreshDevices():void {
+		
+			currentState = "disabled";
+			autoselect = false;
+			cameraSettings = null;
+			videoSelector.setSelectedIndex( -1 );
+			audioSelector.setSelectedIndex( -1 );
+			qualitySelector.setSelectedIndex( -1 );
+			modeSelector.setSelectedIndex( -1 );
+			videoBox.loadSnapshot( null );
+			settingsChange();
+			
+			this.dispatchEvent( new Event( Event.CANCEL ) );
+			
+		}
+		
+		public function setVideoDevices( xmlList:XMLList ):void {
+			
+			cameraList.source = xmlList;
+			
+		}
+		
+		public function setAudioDevices( xmlList:XMLList ):void {
+			
+			microphoneList.source = xmlList;
+			
+		}
+		
+		public function exitApp():void {
+			
+			error = false;
+			logVisible = false;
+			
+		}
+		
+		protected function configureDevice( e:flash.events.Event ):void {
+			
+			//trace( e.target.selectedItem.toXMLString() );
+			dccw.show( this.parentDocument as DisplayObject );
+			dccw.captureMouse = Boolean( int( e.target.selectedItem.@mouse ) );
+			dccw.captureMouseClick = Boolean( int( e.target.selectedItem.@mouseclick ) );
+			
+		}
+		
+		protected function dccwClosed( e:Event ):void {
+			
+			var xxx:XML = cameraList.getItemAt( videoSelector.selectedIndex ) as XML;
+			xxx.@mouse = int( dccw.captureMouse );
+			xxx.@mouseclick = int( dccw.captureMouseClick );
+			cameraList.setItemAt( xxx, videoSelector.selectedIndex );
+			//trace( ( cameraList.getItemAt( videoSelector.selectedIndex ) as XML ).toXMLString() );
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+	<s:HGroup id="videoPlaceholderOuter" width="100%" height="100%" gap="0">
+		
+		<s:VGroup width="{ actionGroupWidth }" height="100%" gap="1" depth="1" includeInLayout="false" visible="false">
+			
+			<views:SideButton
+				width="30" height="30"
+				icon='@Embed(source="../../../../assets/icon_info.png")'
+				toolTip="Device info"
+			/>
+			
+		</s:VGroup>
+		
+		<s:Group id="videoPlaceholder" width="100%" height="100%" depth="3">
+			<views:VideoBox
+				id="videoBox"
+				width="100%" height="100%"
+				zoom="@{ zoom }"
+				videoBW="{videoBW}"
+				videoFPS="{videoFPS}"
+				videoHeight="{videoHeight}"
+				videoWidth="{videoWidth}"
+			/>
+		</s:Group>
+		
+		<s:VGroup width="{ actionGroupWidth }" height="100%" depth="2" includeInLayout="false" visible="false">
+			
+			<views:SideButton
+				width="30" height="30"
+				icon='@Embed(source="../../../../assets/icon_description.png")'
+				toolTip="Description"
+			/>
+			
+		</s:VGroup>
+		
+	</s:HGroup>
+	
+	<s:HGroup
+		width="100%" height="120"
+		horizontalAlign="center" id="controlsGroup"
+		enabled="{ canStart }"
+		mask="{ controlsGroupMask }"
+		>
+		
+		<s:VGroup
+			height="100%"
+			width="50"
+			verticalAlign="middle"
+			horizontalAlign="center"
+			>
+			
+			<views:ColoredButton
+				width="24"
+				height="24"
+				icon='@Embed(source="../../../../assets/icon_refresh.png")'
+				showIcon="true"
+				showLabel="false"
+				color="#3F424C"
+				enabled="{ !connecting &amp;&amp; !connected }"
+				toolTip="Refresh devices"
+				click="refreshDevices()"
+				sidePadding="0"
+			/>
+			
+		</s:VGroup>
+		
+		<s:VGroup
+			height="100%"
+			verticalAlign="middle"
+			horizontalAlign="right"
+			gap="10"
+			>
+			
+			<views:Dropdown
+				id="videoSelector"
+				configure="configureDevice( event )"
+				prompt="Select video input"
+				icon='@Embed(source="../../../../assets/icon_video.png")'
+				dataProvider="{ cameraList }"
+				labelField="@label"
+				change="videoInputChange()"
+				popupWidth="300"
+				itemRenderer="live.cameleon.views.renderers.CategorizedListItem"
+				enabled="{ !connecting &amp;&amp; !connected &amp;&amp; ( cameraList.length > 0 ) }"
+				>
+				
+				<views:layout>
+					<s:VerticalLayout gap="0" requestedMaxRowCount="15" />
+				</views:layout>
+				
+			</views:Dropdown>
+			
+			<views:Dropdown
+				id="audioSelector"
+				prompt="Select audio input"
+				icon='@Embed(source="../../../../assets/icon_mic.png")'
+				dataProvider="{ microphoneList }"
+				labelField="@label"
+				change="audioInputChange()"
+				popupWidth="300"
+				itemRenderer="live.cameleon.views.renderers.CategorizedListItem"
+				enabled="{ ( videoSelector.selectedIndex >= 0 ) &amp;&amp; !connecting &amp;&amp; !connected &amp;&amp; ( microphoneList.length > 0 ) }"
+				>
+				
+				<views:layout>
+					<s:VerticalLayout gap="0" requestedMaxRowCount="15" />
+				</views:layout>
+				
+			</views:Dropdown>
+			
+		</s:VGroup>
+		
+		<s:VGroup
+			width="200" height="100%"
+			horizontalAlign="center"
+			verticalAlign="middle"
+			>
+			
+			<views:StartButton id="startButton" width="84" height="84" />
+			
+		</s:VGroup>
+		
+		<s:VGroup
+			height="100%"
+			horizontalAlign="left"
+			verticalAlign="middle"
+			gap="10"
+			>
+			
+			<views:Dropdown
+				id="modeSelector"
+				prompt="Video settings"
+				icon='@Embed(source="/../assets/icon_movie.png")'
+				dataProvider="{ videoModes }"
+				labelField="label"
+				popupWidth="300"
+				itemRenderer="live.cameleon.views.renderers.StreamCompatibilityListItem"
+				enabled="{ ( videoSelector.selectedIndex >= 0 ) &amp;&amp; !connecting &amp;&amp; !connected }"
+				change="videoSettingsChange()"
+				>
+				
+				<views:layout>
+					<s:VerticalLayout gap="0" requestedMaxRowCount="15" />
+				</views:layout>
+				
+			</views:Dropdown>
+			
+			<views:Dropdown
+				id="qualitySelector"
+				prompt="Stream quality"
+				icon='@Embed(source="../../../../assets/icon_network.png")'
+				popupWidth="300"
+				enabled="{ ( videoSelector.selectedIndex >= 0 ) &amp;&amp; ( audioSelector.selectedIndex >= 0 )  &amp;&amp; ( modeSelector.selectedIndex >= 0 )&amp;&amp; !connecting &amp;&amp; !connected }"
+				change="streamQualityChange()"
+			/>
+			
+		</s:VGroup>
+		
+		<s:VGroup
+			height="100%"
+			width="50"
+			verticalAlign="middle"
+			horizontalAlign="center"
+		>
+			
+			<views:ColoredButton
+				width="24"
+				height="24"
+				icon='@Embed(source="../../../../assets/icon_facebook2.png")'
+				showIcon="true"
+				showLabel="false"
+				color="#3F424C"
+				enabled="{ !connecting &amp;&amp; !connected }"
+				toolTip="Enable/disable Facebook compatibility. If enabled the stream resolution will be maximized at 720p @ 30fps even for YouTube"
+				toggleMode="true"
+				toggleColor="#4267B2"
+				toggled="@{fbCompatibilityEnabled}"
+				click="fbCompatibilityClick()"
+				sidePadding="0"
+			/>
+			
+		</s:VGroup>
+		
+	</s:HGroup>
+	
+	<views:TitleEditor
+		width="{ videoBox.width }" x="{ actionGroupWidth * 0 }" height="60"
+		includeInLayout="false"
+		title="@{ title }"
+		editable="{ editable }"
+	/>
+		
+	<s:Group id="controlsGroupMask" width="{ this.width }" height="{ controlsGroup.height }" x="0" y="{ controlsGroup.y }" includeInLayout="false">
+		<s:Rect width="100%" height="100%">
+			<s:fill>
+				<mx:SolidColor color="#00ff00" />
+			</s:fill>
+		</s:Rect>
+	</s:Group>
+		
+	<!--
+	<s:BorderContainer id="logContainer" visible="{ logVisible }" backgroundColor="#1A1B1E" borderVisible="false" width="{ videoBox.width }" height="{ videoBox.height }" x="{ actionGroupWidth }" includeInLayout="false">
+		
+		<s:layout>
+			<s:VerticalLayout padding="10" />
+		</s:layout>
+		
+		<s:TextArea fontFamily="_typewriter" width="100%" height="100%" id="logText" borderVisible="false" editable="false" selectable="false" horizontalScrollPolicy="off" />
+		
+	</s:BorderContainer>
+	-->
+		
+</s:VGroup>

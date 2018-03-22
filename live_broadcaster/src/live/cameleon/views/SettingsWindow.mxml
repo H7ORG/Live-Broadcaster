@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="utf-8"?>
+<views:ModalWindow
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	xmlns:views="live.cameleon.views.*"
+	height="440" width="400"
+	title="Settings"
+	canClose="true"
+	>
+	
+	<fx:Declarations>
+		<fx:Boolean id="enableUserCheck">true</fx:Boolean>
+		<fx:Boolean id="enableLogout" />
+		<fx:Boolean id="checkingLicense" />
+		<fx:String id="rtmpPort" />
+		<fx:String id="httpPort" />
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+		
+		import live.cameleon.settings.UserSettings;
+		import live.cameleon.licenser.Licenser;
+		import live.cameleon.licenser.LicenserEvent;
+		import flash.events.Event;
+		
+		[Bindable] protected var patternPort:RegExp = new RegExp( /(\d{1,5})/g );
+		
+		public function setData( logout:Boolean, licenseEmail:String, licenseKey:String ):void {
+			
+			enableLogout = logout;
+			
+			inputEmail.text = licenseEmail;
+			inputKey.text = licenseKey;
+			
+			/*
+			rtmpPort = rtmp;
+			httpPort = http;
+			
+			inputRtmpPort.text = rtmpPort;
+			inputHttpPort.text = httpPort;
+			*/
+		}
+		
+		override public function close():void {
+			
+			super.close();
+			
+			UserSettings.enableLogout = cbLogout.selected;
+			//if ( inputRtmpPort.valid ) UserSettings.rtmpPort = int( inputRtmpPort.value );
+			//if ( inputHttpPort.valid ) UserSettings.httpPort = int( inputHttpPort.value );
+			
+		}
+		
+		protected function checkLicense():void {
+			
+			Licenser.instance.addEventListener( LicenserEvent.CHECKING, licenseChecking );
+			Licenser.instance.addEventListener( LicenserEvent.COMPLETE, licenseComplete );
+			
+			Licenser.instance.check( inputEmail.text.toLowerCase(), inputKey.text );
+			
+		}
+		
+		protected function licenseChecking( e:Event ):void {
+			
+			checkingLicense = true;
+			
+		}
+		
+		protected function licenseComplete( e:Event ):void {
+			
+			Licenser.instance.removeEventListener( LicenserEvent.CHECKING, licenseChecking );
+			Licenser.instance.removeEventListener( LicenserEvent.COMPLETE, licenseComplete );
+			
+			checkingLicense = false;
+			
+			if ( Licenser.instance.isPro ) {
+				
+				UserSettings.licenseEmail = inputEmail.text.toLowerCase();
+				UserSettings.licenseKey = inputKey.text;
+				
+			}
+			
+		}
+		
+		protected function purchaseLicense():void {
+			
+			module.purchaseLicense();
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+	<views:content>
+		
+		<s:VGroup width="100%" height="100%" gap="10" paddingLeft="10" paddingRight="10">
+			
+			<s:Label styleName="h3" text="Accounts" />
+			
+			<s:HGroup width="100%" verticalAlign="middle" paddingLeft="20">
+				
+				<views:CheckBoxX id="cbLogout" label="Log out from accounts on exit" selected="{ enableLogout }" />
+				
+			</s:HGroup>
+			
+			<mx:Spacer includeInLayout="{ enableUserCheck }" visible="{ enableUserCheck }" />
+			
+			<s:Label styleName="h3" text="License" includeInLayout="{ enableUserCheck }" visible="{ enableUserCheck }" />
+			
+			<s:VGroup width="100%" verticalAlign="middle" paddingLeft="20" includeInLayout="{ enableUserCheck }" visible="{ enableUserCheck }">
+				
+				<s:HGroup width="100%" verticalAlign="middle">
+					
+					<s:Label width="80" text="Email address" />
+					
+					<views:VTextInput id="inputEmail" width="100%" height="30" restrict="-1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_+.@" />
+					
+				</s:HGroup>
+				
+				<s:HGroup width="100%" verticalAlign="middle">
+					
+					<s:Label width="80" text="License Key" />
+					
+					<views:VTextInput id="inputKey" width="100%" height="30" restrict="-1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" />
+					
+				</s:HGroup>
+				
+				<mx:Spacer height="20" />
+				
+				<views:InfoLabel width="100%" text="You are currently using a Standard License" includeInLayout="{ !Licenser.instance.isPro }" visible="{ !Licenser.instance.isPro }" />
+				<views:InfoLabel width="100%" text="You are currently using a Pro License" color="#8AD12E" includeInLayout="{ Licenser.instance.isPro }" visible="{ Licenser.instance.isPro }" isPro="true" />
+				<views:InfoLabel width="100%" text="Enter the email address you've purchased the Pro License with" />
+				<views:InfoLabel width="100%" text="Enter the License Key you've received after the purchase" />
+				<views:InfoLabel width="100%" text="License Key is case-sensitive" />
+				<views:InfoLabel width="100%" text="Keep your License Key a secret. Do not share the License Key with anyone, it belongs to you only" />
+				
+				<mx:Spacer height="20" />
+				
+				<s:HGroup width="100%">
+					
+					<views:ColoredButton label="Verify License" click="checkLicense()" enabled="{ !checkingLicense }" color="#3F424C" showIcon="false" showLabel="true"  />
+					<views:ColoredButton label="Purchase License" click="purchaseLicense()" includeInLayout="{ !Licenser.instance.isPro }" visible="{ !Licenser.instance.isPro }" enabled="{ !checkingLicense }" color="#8AD12E" showIcon="false" showLabel="true"  />
+					
+				</s:HGroup>
+				
+			</s:VGroup>
+			
+			<!--
+			
+			<mx:Spacer />
+			
+			<s:Label styleName="h3" text="Advanced" />
+			
+			<s:VGroup width="100%" verticalAlign="middle" paddingLeft="20" paddingRight="10">
+				
+				<s:HGroup width="100%" verticalAlign="middle">
+					
+					<s:Label width="80" text="Streaming port" />
+					
+					<view:VTextInput pattern="{ patternPort }" id="inputRtmpPort" maxChars="5" width="100%" height="30" restrict="1234567890" />
+					
+				</s:HGroup>
+				
+				<s:HGroup width="100%" verticalAlign="middle">
+					
+					<s:Label width="80" text="Logger port" />
+					
+					<view:VTextInput pattern="{ patternPort }" id="inputHttpPort" maxChars="5" width="100%" height="30" restrict="1234567890" />
+					
+				</s:HGroup>
+				
+				<mx:Spacer height="20" />
+				
+				<view:InfoLabel width="100%" text="Do not change these settings if the streaming is working fine!" />
+				<view:InfoLabel width="100%" text="Enter values between 1025 and 65535" />
+				<view:InfoLabel width="100%" text="These settings will be applied on restart" />
+				
+			</s:VGroup>
+				
+			-->
+			
+		</s:VGroup>
+		
+	</views:content>
+	
+</views:ModalWindow>

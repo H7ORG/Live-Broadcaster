@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+    xmlns:view="mxml.view.*"
+	>
+	
+	<fx:Declarations>
+		<fx:RegExp id="pattern" />
+		<fx:String id="text" />
+		<fx:String id="prompt" />
+		<fx:String id="restrict" />
+		<fx:String id="defaultValue" />
+		<fx:String id="textAlign">left</fx:String>
+		<fx:Boolean id="displayAsPassword" />
+		<fx:Boolean id="isPassword" />
+		<fx:Boolean id="isEmptyValid" />
+		<fx:Boolean id="editable">true</fx:Boolean>
+		<fx:Boolean id="warning" />
+		<fx:String id="warningToolTip" />
+		<fx:int id="maxChars">50</fx:int>
+		<s:Fade alphaFrom=".5" alphaTo="0" duration="500" target="{ error }" id="fade" />
+	</fx:Declarations>
+	
+	<fx:Metadata> 
+        [Event(name="change", type="spark.events.TextOperationEvent")] 
+    </fx:Metadata> 
+	
+	<fx:Script>
+		<![CDATA[
+		
+		import mx.events.FlexEvent;
+		import spark.events.TextOperationEvent;
+		
+		public function get valid():Boolean {
+			
+			if ( isEmptyValid && ( input.text == "" ) ) return true;
+			
+			/*
+			if (  String( input.text ).search( pattern ) != 0 ) {
+				fade.play();
+			}
+			*/
+			
+			return ( String( input.text ).search( pattern ) == 0 );
+			
+		}
+		
+		public function inputChange( event:TextOperationEvent ):void {
+			
+			this.dispatchEvent( event );
+			
+		}
+		
+		private function pwToggle():void {
+			
+			this.displayAsPassword = !this.displayAsPassword;
+			
+		}
+		
+		public function get value():String {
+			
+			if ( input.text == "" ) return defaultValue;
+			return input.text;
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+	<s:TextInput borderColor="#222222" contentBackgroundColor="{ ( editable ) ? 0x23252C : 0x23252C }" width="100%" height="100%" id="input" text="@{ text }" prompt="{ prompt }" restrict="{ restrict }" change="inputChange( event )" displayAsPassword="{ displayAsPassword }" editable="{ editable }" textAlign="{ textAlign }" maxChars="{ maxChars }" borderVisible="true" />
+	
+	<!--
+	<view:IconButton cornerRadius="3" width="{ this.height }" height="100%" toolTip="{ language.tooltips.passwordtoggle }" click="pwToggle()" visible="{ isPassword &amp;&amp; displayAsPassword }" right="0" icon="{ Settings.BRAND_ID }/eye.png" />
+	
+	<view:IconButton width="{ this.height }" height="100%" toolTip="{ language.tooltips.passwordtoggle }" click="pwToggle()" visible="{ isPassword &amp;&amp; !displayAsPassword }" right="0" icon="{ Settings.BRAND_ID }/eye-slash.png" />
+	
+	<view:IconButton width="{ this.height }" height="100%" toolTip="{ warningToolTip }" visible="{ warning }" includeInLayout="{ warning }" right="0" icon="{ Settings.BRAND_ID }/warning.png" />
+	-->
+	
+	<s:BorderContainer id="error" width="100%" height="100%" mouseEnabled="false" backgroundColor="#ff0000" mouseChildren="false" borderVisible="false" alpha="0" />
+	
+</s:Group>

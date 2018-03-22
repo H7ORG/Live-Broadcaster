@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<application xmlns="http://ns.adobe.com/air/application/28.0">
+  <id>live.cameleon.livebroadcaster</id>
+  <versionNumber>1.0.336</versionNumber>
+  <filename>Live Broadcaster</filename>
+  <name>Live Broadcaster</name>
+  <copyright>© cameleon.live</copyright>
+  <initialWindow>
+    <title>Live Broadcaster</title>
+    <content>LiveBroadcaster.swf</content>
+    <systemChrome>none</systemChrome>
+    <transparent>true</transparent>
+    <visible>true</visible>
+    <minimizable>true</minimizable>
+    <maximizable>true</maximizable>
+    <resizable>true</resizable>
+    <minSize>640 350</minSize>
+    <requestedDisplayResolution>high</requestedDisplayResolution>
+    <x>50</x>
+    <y>50</y>
+  </initialWindow>
+  <!-- 
+	More options:
+	http://livedocs.adobe.com/flex/3/html/File_formats_1.html#1043413
+	-->
+  <supportedProfiles>extendedDesktop</supportedProfiles>
+  <android>
+    <manifestAdditions><![CDATA[<manifest android:installLocation="auto" xmlns:android="http://schemas.android.com/apk/res/android" />]]></manifestAdditions>
+  </android>
+  <supportedLanguages>en</supportedLanguages>
+  <icon>
+    <image16x16>/icons/16.png</image16x16>
+    <image29x29>/icons/29.png</image29x29>
+    <image32x32>/icons/32.png</image32x32>
+    <image36x36>/icons/36.png</image36x36>
+    <image40x40>/icons/40.png</image40x40>
+    <image48x48>/icons/48.png</image48x48>
+    <image50x50>/icons/50.png</image50x50>
+    <image57x57>/icons/57.png</image57x57>
+    <image72x72>/icons/72.png</image72x72>
+    <image76x76>/icons/76.png</image76x76>
+    <image128x128>/icons/128.png</image128x128>
+    <image58x58>/icons/58.png</image58x58>
+    <image80x80>/icons/80.png</image80x80>
+    <image96x96>/icons/96.png</image96x96>
+    <image100x100>/icons/100.png</image100x100>
+    <image114x114>/icons/114.png</image114x114>
+    <image120x120>/icons/120.png</image120x120>
+    <image144x144>/icons/144.png</image144x144>
+    <image152x152>/icons/152.png</image152x152>
+    <image192x192>/icons/192.png</image192x192>
+    <image512x512>/icons/512.png</image512x512>
+  </icon>
+</application>

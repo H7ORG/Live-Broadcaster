@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema" targetNamespace="http://as3commons.org/logging/1" xmlns:log="http://as3commons.org/logging/1" elementFormDefault="qualified">
+
+	<element name="setup" type="log:Setup">
+		<unique name="TargetName">
+			<selector xpath=".//log:target"/>
+			<field xpath="@name"/>
+		</unique>
+	</element>
+	
+	<element name="rule" type="log:Rule"/>
+	
+	<element name="target" type="log:SimpleTarget">
+		<unique name="TargetName2">
+			<selector xpath=".//log:target"/>
+			<field xpath="@name"/>
+		</unique>
+	</element>
+	
+	<complexType name="Setup">
+		<sequence maxOccurs="unbounded" minOccurs="0">
+			<choice>
+				<element name="rule" type="log:Rule"/>
+				<element name="target" type="log:TargetDefinition"/>
+			</choice>
+		</sequence>
+	</complexType>
+	
+	<complexType name="Rule">
+		<choice maxOccurs="1" minOccurs="1">
+			<element name="ignore" type="log:Ignore"/>
+			<sequence maxOccurs="unbounded" minOccurs="1">
+				<choice>
+					<element name="target" type="log:Target"/>
+					<element name="target-ref" type="log:TargetReference"/>
+				</choice>
+			</sequence>
+		</choice>
+		<attribute name="name" type="string" use="optional"/>
+		<attribute name="person" type="string" use="optional"/>
+		<attribute name="level" use="optional" default="ALL">
+			<simpleType>
+				<restriction base="string">
+					<pattern
+						value="(FATAL|FATAL_ONLY|ERROR|ERROR_ONLY|WARN|WARN_ONLY|INFO|INFO_ONLY|DEBUG|DEBUG_ONLY|ALL|NONE)(\|(FATAL|FATAL_ONLY|ERROR|ERROR_ONLY|WARN|WARN_ONLY|INFO|INFO_ONLY|DEBUG|DEBUG_ONLY|ALL|NONE))*">
+					</pattern>
+				</restriction>
+			</simpleType>
+		</attribute>
+	</complexType>
+	
+	<complexType name="Ignore"/>
+	
+	<complexType name="Argument">
+		<sequence minOccurs="0" maxOccurs="unbounded">
+			<choice>
+				<element name="target" type="log:Target"/>
+				<element name="target-ref" type="log:TargetReference"/>
+			</choice>
+		</sequence>
+		<attribute name="value" type="string"></attribute>
+	</complexType>
+	
+	<complexType name="Property">
+		<sequence minOccurs="0" maxOccurs="1">
+			<choice>
+				<element name="target" type="log:Target"/>
+				<element name="target-ref" type="log:TargetReference"/>
+			</choice>
+		</sequence>
+		<attribute name="value" type="string"/>
+		<attribute name="name" use="required"/>
+	</complexType>
+	
+	<complexType name="SimpleTarget">
+		<sequence minOccurs="0" maxOccurs="unbounded">
+			<choice>
+				<element name="arg" type="log:Argument" minOccurs="0"/>
+				<element name="property" type="log:Property" minOccurs="0" />
+			</choice>
+		</sequence>
+		<attribute name="type" type="string" use="required"/>
+	</complexType>
+	
+	<complexType name="Target">
+		<complexContent>
+			<extension base="log:SimpleTarget">
+				<attribute name="name" type="string" use="optional"/>
+			</extension>
+		</complexContent>
+	</complexType>
+	
+	<complexType name="TargetReference">
+		<attribute name="ref" type="string" use="required"/>
+	</complexType>
+	
+	<complexType name="TargetDefinition">
+		<sequence maxOccurs="unbounded" minOccurs="0">
+			<choice>
+				<element name="arg" type="log:Argument"/>
+				<element name="property" type="log:Property"/>
+			</choice>
+		</sequence>
+		<attribute name="name" type="string" use="required"/>
+		<attribute name="type" type="string" use="required"/>
+	</complexType>
+</schema>

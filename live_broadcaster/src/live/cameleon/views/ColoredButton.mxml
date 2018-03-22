@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:BorderContainer
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	cornerRadius="3"
+	borderAlpha=".2"
+	borderColor="#000000"
+	currentState="mOut"
+	mouseOver="this.currentState = 'mOver'"
+	mouseOut="this.currentState = 'mOut'"
+	backgroundColor="{ usedColor }"
+	useHandCursor="true"
+	buttonMode="true"
+	height="36"
+	click="clicked()"
+	creationComplete="init()"
+	>
+	
+	<fx:Declarations>
+		<fx:int id="sidePadding">10</fx:int>
+		<fx:uint id="toggleColor">0xFFFFFF</fx:uint>
+		<fx:uint id="color" />
+		<fx:uint id="usedColor" />
+		<fx:uint id="disabledColor">0x3F424C</fx:uint>
+		<fx:uint id="labelColor">0xFFFFFF</fx:uint>
+		<fx:Boolean id="showIcon">false</fx:Boolean>
+		<fx:Boolean id="showLabel">true</fx:Boolean>
+		<fx:Boolean id="toggleMode" />
+		<fx:Boolean id="toggled" />
+		<fx:Object id="icon" />
+		<fx:Number id="iconScale">.5</fx:Number>
+		<fx:String id="label" />
+		<fx:String id="hAlign">center</fx:String>
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+		
+		protected function init():void {
+			
+			if ( enabled ) usedColor = color else usedColor = disabledColor;
+			
+		}
+		
+		protected function clicked():void {
+			
+			if ( toggleMode ) {
+				
+				toggled = !toggled;
+				
+			}
+			
+		}
+		
+		override public function set enabled(value:Boolean):void {
+			
+			super.enabled = value;
+			
+			if ( enabled ) usedColor = color else usedColor = disabledColor;
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<mx:State name="mOut" />
+		<mx:State name="mOver" />
+	</s:states>
+	
+	<!--
+	<s:filters>
+		<s:DropShadowFilter alpha="{ int( toggled ) }" inner="true" color="{ toggleColor }" angle="0" distance="0" strength="3" />
+	</s:filters>
+	-->
+	
+	<s:Rect radiusX="3" left="0" top="0" right="0" bottom="0" visible="{ toggled }">
+		<s:fill>
+			<mx:SolidColor color="{ toggleColor }" alpha="1" />
+		</s:fill>
+		<s:stroke>
+			<mx:SolidColorStroke color="{ toggleColor }" caps="round" joints="round" pixelHinting="false" weight="2" alpha="0" />
+		</s:stroke>
+	</s:Rect>
+	
+	<s:HGroup
+		width="100%" height="100%"
+		verticalAlign="middle"
+		horizontalAlign="{ hAlign }"
+		paddingLeft="{ sidePadding }"
+		paddingRight="{ sidePadding }"
+		>
+		
+		<s:BitmapImage source="{ icon }" scaleX="{ iconScale }" scaleY="{ iconScale }" visible="{ showIcon }" includeInLayout="{ showIcon }" />
+		<s:Label color="{ labelColor }" text="{ label }" visible="{ showLabel }" includeInLayout="{ showLabel }" />
+		
+	</s:HGroup>
+	
+	<s:Rect radiusX="3" width="100%" height="100%" includeIn="mOver">
+		<s:fill>
+			<mx:SolidColor color="#ffffff" alpha=".2" />
+		</s:fill>
+	</s:Rect>
+	
+</s:BorderContainer>

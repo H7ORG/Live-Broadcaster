@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	currentState="disabled"
+	mouseOver="mOver = true"
+	mouseOut="mOver = false"
+	creationComplete="init()"
+	>
+	
+	<fx:Declarations>
+		<fx:uint id="disabledColor">0x3F424C</fx:uint>
+		<fx:uint id="connectColor">0x2451C3</fx:uint>
+		<!--<fx:uint id="connectingColor">0xffcc00</fx:uint>-->
+		<fx:uint id="connectingColor">0xffffff</fx:uint>
+		<fx:uint id="stopColor">0xff0000</fx:uint>
+		<fx:Boolean id="mOver" />
+		<fx:String id="buttonLabel">.</fx:String>
+		<s:Animate id="connectingAnimation" repeatCount="0" repeatDelay="1000" target="{ animated }" disableLayout="true">
+			<s:motionPaths>
+				<s:SimpleMotionPath property="width" valueTo="178" valueFrom="0" />
+				<s:SimpleMotionPath property="height" valueTo="178" valueFrom="0" />
+				<s:SimpleMotionPath property="x" valueTo="{ button.x - 48 }" valueFrom="{ button.x + 48 }" />
+				<s:SimpleMotionPath property="y" valueTo="{ button.y - 48 }" valueFrom="{ button.y + 48 }" />
+				<s:SimpleMotionPath property="alpha" valueTo="0" valueFrom="1" />
+			</s:motionPaths>
+		</s:Animate>
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+		
+		
+		public var streamBox:live.cameleon.views.StreamBox;
+		
+		protected function init():void {
+			
+			connectingAnimation.play();
+			
+		}
+		
+		public function setState( stateName:String ):void {
+			
+			this.currentState = stateName;
+			
+			switch ( stateName ) {
+				
+				case "connect":
+					animated.visible = false;
+					connectingAnimation.stop();
+					buttonLabel = "CONNECT";
+					break;
+				
+				case "connecting":
+					animated.visible = true;
+					connectingAnimation.play();
+					buttonLabel = "CONNECTING";
+					break;
+				
+				case "stop":
+					animated.visible = false;
+					connectingAnimation.stop();
+					buttonLabel = "STOP";
+					break;
+				
+				default:
+					animated.visible = false;
+					connectingAnimation.stop();
+					buttonLabel = "SELECT\nDEVICES";
+				
+			}
+			
+		}
+		
+		protected function buttonClick():void {
+			
+			if ( this.currentState == "connect" ) {
+				
+				//this.parentApplication.connectDevice( { name:  } );
+				streamBox.connectDevice();
+				
+			}
+			
+			if ( this.currentState == "stop" ) {
+				
+				//this.parentApplication.connectDevice( { name:  } );
+				streamBox.disconnectDevice();
+				
+			}
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<mx:State name="disabled" />
+		<mx:State name="connect" />
+		<mx:State name="connecting" />
+		<mx:State name="stop" />
+	</s:states>
+	
+	<s:Ellipse width="178" height="178" x="{ button.x - 48 }" y="{ button.y - 48 }">
+		<s:fill>
+			<mx:SolidColor
+				color="{ disabledColor }"
+				color.disabled="{ disabledColor }"
+				color.connect="{ connectColor }"
+				color.connecting="{ connectingColor }"
+				color.stop="{ stopColor }"
+				alpha=".25"
+				alpha.connecting=".05"
+			/>
+		</s:fill>
+	</s:Ellipse>
+	
+	<s:Ellipse id="animated" width="178" height="178" x="{ button.x - 48 }" y="{ button.y - 48 }">
+		<s:fill>
+			<mx:SolidColor
+				color="#ffffff"
+				alpha=".25"
+			/>
+		</s:fill>
+	</s:Ellipse>
+	
+	<s:BitmapImage id="gfx" visible="{ currentState == 'disabled' }" source='@Embed(source="../../../../assets/select_devices.png")' scaleX=".5" scaleY=".5" x="-56" y="20" alpha=".2" />
+	
+	<s:Group width="100%" height="100%"
+		useHandCursor="false"
+		buttonMode="false"
+		useHandCursor.disabled="false"
+		buttonMode.disabled="false"
+		useHandCursor.connect="true"
+		buttonMode.connect="true"
+		useHandCursor.connecting="false"
+		buttonMode.connecting="false"
+		useHandCursor.stop="true"
+		buttonMode.stop="true"
+		click="buttonClick()"
+		>
+		
+		<s:Ellipse id="button" width="100%" height="100%" visible="{ ( currentState != 'connecting' ) &amp;&amp; ( currentState != 'disabled' ) }">
+			<s:fill>
+				<mx:SolidColor
+					color="{ disabledColor }"
+					color.disabled="{ disabledColor }"
+					color.connect="{ connectColor }"
+					color.connecting="{ connectingColor }"
+					color.stop="{ stopColor }"
+				/>
+			</s:fill>
+		</s:Ellipse>
+		
+		<s:Ellipse id="ovr" width="100%" height="100%" visible="{ mOver &amp;&amp; ( currentState != 'disabled' )&amp;&amp; ( currentState != 'connecting' ) }">
+			<s:fill>
+				<mx:SolidColor color="#ffffff" alpha=".1" />
+			</s:fill>
+		</s:Ellipse>
+		
+		<s:Label color="#ffffff" text="{ buttonLabel }" textAlign="center" horizontalCenter="0" verticalCenter="0" fontSize="13" lineHeight="13" />
+		
+	</s:Group>
+	
+</s:Group>

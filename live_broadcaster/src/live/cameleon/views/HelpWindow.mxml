@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<views:ModalWindow
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	xmlns:views="live.cameleon.views.*"
+	height="350" width="500"
+	title="Useful Links"
+	canClose="true"
+	>
+	
+	<fx:Declarations>
+		<fx:String id="coreVersion" />
+		<fx:String id="moduleVersion" />
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+		
+		import live.cameleon.settings.URLs;
+		
+		private function fbLink( s:String ):void {
+			
+			switch ( s ) {
+				
+				case 'as':
+					module.visitLink( URLs.LINK_FACEBOOK_APP_SETTINGS );
+					break;
+				
+				case 'cs':
+					module.visitLink( URLs.LINK_FACEBOOK_COMMUNITY_STANDARDS );
+					break;
+				
+				case 'bp':
+					module.visitLink( URLs.LINK_FACEBOOK_BEST_PRACTICES );
+					break;
+				
+				case 'gp':
+					module.visitLink( URLs.LINK_FACEBOOK );
+					break;
+				
+				case 'ow':
+					module.visitLink( URLs.LINK_WEBSITE );
+					break;
+				
+			}
+			
+		}
+		
+		private function ytLink( s:String ):void {
+			
+			switch ( s ) {
+				
+				case 'lsh':
+					module.visitLink( URLs.LINK_YOUTUBE_LIVE_STREAMING_HELP );
+					break;
+				
+				case 'ld':
+					module.visitLink( URLs.LINK_YOUTUBE_LIVE_DASHBOARD );
+					break;
+				
+			}
+			
+		}
+
+		]]>
+	</fx:Script>
+	
+	<views:content>
+		
+		<s:VGroup width="100%" height="100%" gap="10" paddingLeft="30" paddingRight="10" verticalAlign="top">
+			
+			<!--
+			<s:Label styleName="h3" text="About" />
+			
+			<s:VGroup width="100%" gap="10" paddingLeft="20">
+				
+				<s:Label paddingLeft="10" text="Core version: { coreVersion }" />
+				<s:Label paddingLeft="10" text="Module version: { moduleVersion }" />
+				<mx:Spacer />
+				
+			</s:VGroup>
+			-->
+			
+			<s:Label styleName="h3" text="Live Broadcaster Help" />
+			
+			<s:VGroup width="100%" gap="10" paddingLeft="20">
+				
+				<s:Label paddingLeft="10" text="Official Website" styleName="facebookLink" useHandCursor="true" buttonMode="true" click="fbLink( 'ow' )" />
+				<s:Label paddingLeft="10" text="Join the Live Video Streaming Community" styleName="facebookLink" useHandCursor="true" buttonMode="true" click="fbLink( 'gp' )" />
+				<mx:Spacer />
+				
+			</s:VGroup>
+			
+			<s:Label styleName="h3" text="YouTube Help" />
+			
+			<s:VGroup width="100%" gap="10" paddingLeft="20">
+				
+				<s:Label paddingLeft="10" text="Live Streaming Help" styleName="facebookLink" useHandCursor="true" buttonMode="true" click="ytLink( 'lsh' )" />
+				<s:Label paddingLeft="10" text="Live Dashboard" styleName="facebookLink" useHandCursor="true" buttonMode="true" click="ytLink( 'ld' )" />
+				<mx:Spacer />
+				
+			</s:VGroup>
+			
+			<s:Label styleName="h3" text="Facebook Help" />
+			
+			<s:VGroup width="100%" gap="10" paddingLeft="20">
+				
+				<s:Label paddingLeft="10" text="Facebook App Settings" styleName="facebookLink" useHandCursor="true" buttonMode="true" click="fbLink( 'as' )" />
+				<s:Label paddingLeft="10" text="Facebook Community Standards" styleName="facebookLink" useHandCursor="true" buttonMode="true" click="fbLink( 'cs' )" />
+				<s:Label paddingLeft="10" text="Live Streaming Best Practices" styleName="facebookLink" useHandCursor="true" buttonMode="true" click="fbLink( 'bp' )" />
+				
+			</s:VGroup>
+			
+		</s:VGroup>
+		
+	</views:content>
+	
+</views:ModalWindow>

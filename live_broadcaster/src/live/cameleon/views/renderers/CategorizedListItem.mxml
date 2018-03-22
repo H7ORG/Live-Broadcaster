@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	width="100%"
+	height="30"
+	mouseOver="currentState = 'over'"
+	mouseOut="currentState = 'up'"
+	dataChange="onData()"
+	alpha.disabled="1"
+	disabledAlpha="1"
+	>
+	
+	<fx:Declarations>
+		<fx:String id="fStyle" />
+		<fx:Boolean id="isCategory" />
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+		
+		import live.cameleon.helpers.DeviceHelper;
+		
+		protected function onData():void {
+			
+			if ( data ) {
+				
+				labelName.text = data.@label;
+				
+				if ( int( data.@disabled ) == 1 ) {
+					
+					this.enabled = false;
+					mainGroup.alpha = .33;
+					
+				} else {
+					
+					this.enabled = true;
+					mainGroup.alpha = 1;
+					
+				}
+				
+				if ( int( data.@type ) == DeviceHelper.DEVICE_TYPE_CATEGORY ) {
+					
+					//fStyle = "italic";
+					fStyle = "normal";
+					this.enabled = false;
+					isCategory = true;
+					
+				} else {
+					
+					fStyle = "normal";
+					labelName.text = data.@label;
+					isCategory = false;
+					
+					if ( int( data.@disabled ) == 1 ) {
+						
+						this.enabled = false;
+						mainGroup.alpha = .33;
+						
+					} else {
+						
+						this.enabled = true;
+						mainGroup.alpha = 1;
+						
+					}
+					
+				}
+				
+			}
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+	<s:states>
+        <s:State name="up" />
+        <s:State name="over" />
+        <s:State name="down" />
+        <s:State name="disabled" />
+    </s:states>
+	
+	<s:Rect width="100%" height="100%">
+		<s:fill>
+			<mx:SolidColor color="#272A32" color.over="#4F525B" />
+		</s:fill>
+	</s:Rect>
+	
+	<s:HGroup width="100%" height="100%" verticalAlign="middle" paddingLeft="10" id="mainGroup">
+		
+		<mx:Spacer width="10" includeInLayout="{!isCategory}" visible="{!isCategory}" />
+		<s:Label id="labelBullet" text="▪" includeInLayout="{!isCategory}" visible="{!isCategory}" />
+		<s:Label id="labelName" fontStyle="{ fStyle }" width="100%" maxDisplayedLines="1" text="{ data.label }" />
+		
+	</s:HGroup>
+	
+	<!--
+	<s:Line width="100%" height="1" visible="{ isCategory }" bottom="0">
+		<s:stroke>
+			<mx:SolidColorStroke weight=".1" color="#ffffff" alpha=".2" />
+		</s:stroke>
+	</s:Line>
+	-->
+	
+	
+</s:ItemRenderer>

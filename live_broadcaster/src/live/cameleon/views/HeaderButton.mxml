@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:SkinnableContainer
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	width="40"
+	height="40"
+	useHandCursor="true"
+	buttonMode="true"
+	mouseOver="currentState='hover'"
+	mouseOut="currentState='normal'"
+	creationComplete="init()"
+	>
+	
+	<fx:Declarations>
+		<fx:Object id="icon" />
+		<fx:Object id="hoverIcon" />
+		<!-- <fx:Boolean id="error" /> -->
+		<fx:Boolean id="warning" />
+		<s:Fade id="blinkAnimation" target="{ blinker }" alphaFrom="1" alphaTo="0" repeatBehavior="reverse" duration="500" repeatCount="0" />
+	</fx:Declarations>
+	
+	<s:states>
+		<mx:State name="normal" />
+		<mx:State name="hover" />
+	</s:states>
+	
+	<fx:Script>
+		<![CDATA[
+		
+		private var _error:Boolean;
+		
+		public function init():void {
+			
+			//blinkAnimation.play();
+			
+		}
+		
+		[Bindable]
+		public function get error():Boolean {
+			
+			return _error;
+			
+		}
+		
+		public function set error( value:Boolean ):void {
+			
+			_error = value;
+			
+			( _error ) ? blinkAnimation.play() : blinkAnimation.stop();
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+	<s:BitmapImage source="{ icon }" smooth="true" scaleX=".5" scaleY=".5" horizontalCenter="0" verticalCenter="0" visible.normal="true" visible.hover="false" />
+	<s:BitmapImage source="{ hoverIcon }" smooth="true" scaleX=".5" scaleY=".5" horizontalCenter="0" verticalCenter="0" visible.normal="false" visible.hover="true" />
+	
+	<s:Ellipse width="5" height="5" top="8" right="8" visible="{ warning }">
+		<s:fill>
+			<mx:SolidColor color="#FFCC00" />
+		</s:fill>
+	</s:Ellipse>
+	
+	<s:Ellipse id="blinker" width="5" height="5" top="8" right="8" visible="{ error }">
+		<s:fill>
+			<mx:SolidColor color="#FB4029" />
+		</s:fill>
+	</s:Ellipse>
+	
+</s:SkinnableContainer>

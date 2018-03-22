@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<application:SplashScreenApplication
+	xmlns:fx="http://ns.adobe.com/mxml/2009"
+	xmlns:s="library://ns.adobe.com/flex/spark"
+	xmlns:mx="library://ns.adobe.com/flex/mx"
+	xmlns:modules="live.cameleon.modules.*"
+	xmlns:application="live.cameleon.application.*"
+	xmlns:localView="view.*"
+	xmlns:views="live.cameleon.views.*"
+	showStatusBar="false"
+	backgroundAlpha="0"
+	width="640"
+	height="350"
+	alpha="0"
+	splashImageSource="icons/LiveBroadcasterSplash.png"
+	mainModuleName="LiveBroadcaster"
+	remoteURL="{API.I.REMOTE_URL_LIVE}"
+	updaterURL="LiveBroadcaster.xml"
+	buildNumber="20"
+	contentBackgroundAlpha="0"
+	fadeOutDelay="1000"
+	fadeOutDuration="1"
+	moduleConfigXML="{ moduleXMLContent }"
+	apiClass="{api}"
+	>
+	
+	<fx:Declarations>
+		<fx:uint id="uiColor">0x999999</fx:uint>
+		<fx:uint id="textColor">0xcccccc</fx:uint>
+		<fx:uint id="highlightColor">0xffffff</fx:uint>
+		
+		<fx:XML id="moduleXMLContent">
+			<modules>
+				<module name="LiveBroadcaster" filename="modules/LiveBroadcaster.module" url="LiveBroadcasterModule.swf" />
+			</modules>
+		</fx:XML>
+		
+	</fx:Declarations>
+	
+	<fx:Style source="style/global.css" />
+	
+	<fx:Script>
+		<![CDATA[
+			import flash.events.UncaughtErrorEvent;
+			
+			import mx.events.FlexEvent;
+			
+			import live.cameleon.updater.AppUpdaterEvent;
+			
+			import settings.API;
+			
+			[Bindable]
+			[Embed(source="../../API.properties",mimeType="application/octet-stream")]
+			private var api:Class;
+			
+			override protected function moduleAdded( e:FlexEvent ):void {
+				
+				super.moduleAdded(e);
+				module.config.coreVersionText = String( appXML.appNS::versionNumber );
+				module.call( "init" );
+				
+			}
+			
+			override protected function uncaughtErrorHandler( e:UncaughtErrorEvent ):void {
+				
+				super.uncaughtErrorHandler(e);
+				module.uncaughtError( e );
+				
+			}
+			
+			override protected function updateDownloadStart(e:AppUpdaterEvent):void {
+				
+				super.updateDownloadStart(e);
+				progressBar.visible = true;
+				progressBar.play();
+				
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<application:states>
+		<mx:State name="normal" />
+		<mx:State name="modulesloaded" />
+		<mx:State name="moduleerror" />
+		<mx:State name="updatefound" />
+		<mx:State name="updateprogress" />
+		<mx:State name="updatedownloaded" />
+	</application:states>
+	
+	<application:contentList>
+		
+		<s:VGroup id="mainGroup" width="100%" height="100%" paddingTop="100" paddingLeft="140" gap="20">
+			
+			<s:Label id="appLabel" width="100%" textAlign="left" color="{ textColor }" text="{ versionMessage }" />
+			<s:Label id="statusLabel" text="{ statusMessage }" width="100%" textAlign="left" color="{ textColor }" />
+			
+			<s:HGroup gap="10" includeIn="updatefound">
+				
+				<s:BorderContainer height="30" borderVisible="false" backgroundColor="{ uiColor }" useHandCursor="true" buttonMode="true" click="downloadUpdate()">
+					<s:layout>
+						<s:HorizontalLayout paddingLeft="10" paddingRight="10" verticalAlign="middle" horizontalAlign="center" />
+					</s:layout>
+					<s:Label color="{ highlightColor }" text="Download and Update" />
+				</s:BorderContainer>
+				
+				<s:BorderContainer height="30" borderVisible="false" backgroundColor="{ uiColor }" useHandCursor="true" buttonMode="true" click="exit()">
+					<s:layout>
+						<s:HorizontalLayout paddingLeft="10" paddingRight="10" verticalAlign="middle" horizontalAlign="center" />
+					</s:layout>
+					<s:Label color="{ highlightColor }" text="Exit" />
+				</s:BorderContainer>
+				
+			</s:HGroup>
+			
+			<s:HGroup gap="10" includeIn="updateprogress">
+				
+				<views:ProgressBar id="progressBar" width="200" barColor="#ffffff" bgColor="#666666" visible="false" useCornerRadius="false" />
+				
+			</s:HGroup>
+			
+			<s:HGroup gap="10" includeIn="updatedownloaded">
+				
+				<s:BorderContainer height="30" borderVisible="false" backgroundColor="{ uiColor }" useHandCursor="true" buttonMode="true" click="executeUpdate()">
+					<s:layout>
+						<s:HorizontalLayout paddingLeft="10" paddingRight="10" verticalAlign="middle" horizontalAlign="center" />
+					</s:layout>
+					<s:Label color="{ highlightColor }" text="Start updater" />
+				</s:BorderContainer>
+				
+				<s:BorderContainer height="30" borderVisible="false" backgroundColor="{ uiColor }" useHandCursor="true" buttonMode="true" click="exit()">
+					<s:layout>
+						<s:HorizontalLayout paddingLeft="10" paddingRight="10" verticalAlign="middle" horizontalAlign="center" />
+					</s:layout>
+					<s:Label color="{ highlightColor }" text="Exit" />
+				</s:BorderContainer>
+				
+			</s:HGroup>
+			
+		</s:VGroup>
+		
+		<!-- Needed to avoid CSS compile warning -->
+		<s:Group includeInLayout="false" visible="false">
+			<views:InfoLabel />
+		</s:Group>
+		<!-- Needed to avoid CSS compile warning -->
+		
+	</application:contentList>
+	
+</application:SplashScreenApplication>

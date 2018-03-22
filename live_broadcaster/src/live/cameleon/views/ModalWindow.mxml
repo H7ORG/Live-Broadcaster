@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:BorderContainer
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	xmlns:view="view.*"
+	width="600" height="400"
+	borderVisible="false"
+	backgroundColor="{ BindableSettings.BG_COLOR }"
+	cornerRadius="6"
+	mouseDownOutside="outsideClick()" xmlns:views="live.cameleon.views.*"
+	>
+	
+	<fx:Declarations>
+		<fx:Array id="content" />
+		<fx:String id="title" />
+		<fx:Boolean id="canClose">true</fx:Boolean>
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+		
+		import flash.display.DisplayObject;
+		import flash.events.Event;
+		import live.cameleon.modules.FinalModule;
+		import mx.managers.PopUpManager;
+		import live.cameleon.settings.BindableSettings;
+		
+		public var module:FinalModule;
+		
+		protected function init():void {
+		}
+		
+		public function show( prnt:DisplayObject, closable:Boolean = true ):void {
+			
+			canClose = closable;
+			PopUpManager.addPopUp( this, prnt, true );
+			PopUpManager.centerPopUp( this );
+			
+		}
+		
+		public function close():void {
+			
+			PopUpManager.removePopUp( this );
+			this.dispatchEvent( new Event( Event.CLOSE ) );
+			
+		}
+		
+		protected function outsideClick():void {
+			
+			if ( canClose ) this.close();
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+	<s:layout>
+		<s:VerticalLayout padding="10" gap="10" />
+	</s:layout>
+	
+	<s:filters>
+		<s:DropShadowFilter angle="90" blurX="20" blurY="12" alpha=".5" />
+	</s:filters>
+	
+	<s:Group id="header" width="100%" height="40">
+		
+		<views:HeaderButton
+			id="closeButton"
+			width="12" height="12" left="10"
+			verticalCenter="0"
+			icon='@Embed(source="../../../../assets/icon_windowtop.png")'
+			hoverIcon='@Embed(source="../../../../assets/icon_close.png")'
+			click="close();"
+			visible="{ canClose }"
+		/>
+		
+		<s:Label text="{ title }" styleName="h3" horizontalCenter="0" verticalCenter="0" />
+		
+	</s:Group>
+	
+	<s:Group id="group" mxmlContent="{ content }" width="100%" height="100%" />
+	
+</s:BorderContainer>

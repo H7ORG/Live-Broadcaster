@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:DropDownList
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+	skinClass="live.cameleon.views.skins.DropDownSkin"
+	width="180"
+	height="36"
+	itemRenderer="live.cameleon.views.renderers.ListItem"
+	creationComplete="init()"
+	>
+	
+	<fx:Declarations>
+		<fx:Object id="icon" />
+		<fx:int id="popupWidth">{ this.width }</fx:int>
+	</fx:Declarations>
+		
+	<fx:Metadata>
+        [Event(name="configure", type="flash.events.Event")]
+    </fx:Metadata>
+		
+	<fx:Script>
+		<![CDATA[
+		
+		import flash.events.Event;
+		import flash.events.KeyboardEvent;
+		import spark.layouts.VerticalLayout;
+		
+		protected function init():void {
+			
+		}
+		
+		override protected function keyDownHandler(event:KeyboardEvent):void {
+			
+			//super.keyDownHandler(event);
+			
+		}
+		
+		public function configureItem():void {
+			
+			this.dispatchEvent( new Event( "configure" ) );
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+</s:DropDownList>

@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Window
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+	xmlns:s="library://ns.adobe.com/flex/spark" 
+	xmlns:mx="library://ns.adobe.com/flex/mx"
+	xmlns:view="view.*"
+	width="800" height="600"
+	minWidth="800" minHeight="600"
+	showStatusBar="false"
+	title="Loading logs..."
+	resize="onResize()"
+	creationComplete="init()"
+	backgroundColor="#1A1B1E"
+	contentBackgroundColor="#1A1B1E"
+	chromeColor="#1A1B1E"
+	windowActivate="windowActive()" xmlns:views="live.cameleon.views.*"
+	>
+	
+	<fx:Declarations>
+		<fx:Boolean id="htmlLog" />
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import flash.events.ErrorEvent;
+			import flash.events.Event;
+			import flash.events.TimerEvent;
+			import flash.filesystem.File;
+			import flash.geom.Rectangle;
+			import flash.media.StageWebView;
+			import flash.utils.Timer;
+			
+			import flashx.textLayout.elements.ParagraphElement;
+			import flashx.textLayout.elements.SpanElement;
+			
+			import live.cameleon.logger.LogEntry;
+			import live.cameleon.logger.Logger;
+			import live.cameleon.net.cameleoncenter.CameleonCenterHelper;
+			import live.cameleon.system.Os;
+			
+			import live.cameleon.modules.FinalModule;
+			
+			import org.as3commons.zip.Zip;
+			
+			
+			
+			
+			
+			private var stageWebView:StageWebView;
+			private var timer:Timer;
+			private var logAddress:String;
+			
+			public var cleanerFunction:Function;
+			public var module:FinalModule;
+			public var created:Boolean;
+			
+			protected function windowClosing( e:Event ):void {
+				
+				e.preventDefault();
+				this.visible = false;
+				
+			}
+			
+			public function dispose():void {
+				
+				this.removeEventListener( Event.CLOSING, windowClosing );
+				
+				if ( timer ) {
+					
+					timer.removeEventListener( TimerEvent.TIMER, timerFunction );
+					timer.stop();
+					timer = null;
+					
+				}
+				
+				if ( stageWebView ) {
+					
+					stageWebView.removeEventListener( Event.COMPLETE, webViewComplete );
+					stageWebView.dispose();
+					
+				}
+				
+			}
+			
+			override public function open( openWindowActive:Boolean = true ):void {
+				
+				created = true;
+				super.open( openWindowActive );
+				
+			}
+			
+			protected function init():void {
+				
+				this.addEventListener( Event.CLOSING, windowClosing );
+				timer = new Timer( 3000 );
+				timer.addEventListener( TimerEvent.TIMER, timerFunction );
+				
+				/*
+				if ( Os.isMac ) {
+				
+				Logger.addCallback( log );
+				this.title = "Live Broadcaster Logs";
+				htmlLog = false;
+				
+				} else {
+				
+				htmlLog = true;
+				stageWebView = new StageWebView( Os.isMac );
+				stageWebView.stage = this.stage;
+				stageWebView.viewPort = new Rectangle( 0, 0, this.width, this.height - 40 );
+				stageWebView.addEventListener( Event.COMPLETE, webViewComplete );
+				stageWebView.addEventListener( ErrorEvent.ERROR, webViewError );
+				refresh();
+				
+				}
+				*/
+				
+				htmlLog = true;
+				stageWebView = new StageWebView( Os.isMac );
+				stageWebView.stage = this.stage;
+				stageWebView.viewPort = new Rectangle( 0, 0, this.width, this.height - 50 );
+				stageWebView.addEventListener( Event.COMPLETE, webViewComplete );
+				stageWebView.addEventListener( ErrorEvent.ERROR, webViewError );
+				refresh();
+				
+				//timer.start();
+				
+			}
+			
+			protected function webViewError( e:ErrorEvent ):void {
+				
+				// HTTP Server is not running, switching to text log
+				
+				
+			}
+			
+			protected function timerFunction( e:TimerEvent ):void {
+				
+				//refresh();
+				
+			}
+			
+			public function refresh():void {
+				
+				//logAddress = CameleonCenterHelper.storagePath.resolvePath( "www/logger/LiveBroadcasterLog.html" );
+				
+				if ( module ) {
+					
+					logAddress = "http://localhost:" + module.cc.httpPort + "/logger/LiveBroadcasterLog.html";
+					if ( stageWebView ) stageWebView.loadURL( logAddress );
+					
+				}
+				
+			}
+			
+			protected function onResize():void {
+				
+				if ( stageWebView ) {
+					
+					stageWebView.viewPort = new Rectangle( 0, 0, this.width, this.height - 50 );
+					
+				}
+				
+			}
+			
+			protected function webViewComplete( e:Event ):void {
+				
+				this.title = stageWebView.title;
+				
+			}
+			
+			protected function log( s:String, level:int ):void {
+				
+				if ( !htmlLog ) {
+					
+					var pe:ParagraphElement = new ParagraphElement();
+					var se:SpanElement  = new SpanElement ();
+					se.text = s;
+					
+					if ( level >= Logger.LEVEL_ERROR ) {
+						
+						pe.color = 0xFB4029;
+						
+					} else if ( level == Logger.LEVEL_WARNING ) {
+						
+						pe.color = 0xFFCC00;
+						
+					}
+					
+					pe.addChild( se );
+					logText.textFlow.addChildAt( 0, pe );
+					
+				}
+				
+				if ( this.nativeWindow.active ) windowActive();
+				
+			}
+			
+			protected function windowActive():void {
+				
+				if ( cleanerFunction != null ) cleanerFunction.call( this );
+				
+			}
+			
+			protected function saveLog():void {
+				
+				var d:Date = new Date();
+				
+				var s:String = "Live Broadcaster Log " + d.getFullYear() + "." + String( d.getMonth() + 1 ) + "." + d.getDate() + " " + d.getHours() + "-" + d.getMinutes() + "-" + d.getSeconds() + ".zip";
+				var f:File = File.desktopDirectory.resolvePath( s );
+				
+				var le:LogEntry = new LogEntry();
+				le.category = Logger.CATEGORY_LOGGER;
+				
+				var v:Vector.<File> = new Vector.<File>;
+				
+				v.push( CameleonCenterHelper.storagePath.resolvePath( "www/logger/logs/LiveBroadcaster.json" ) );
+				v.push( CameleonCenterHelper.storagePath.resolvePath( "www/logger/logs/LiveBroadcaster.txt" ) );
+				v.push( CameleonCenterHelper.storagePath.resolvePath( "www/logger/logs/CameleonCenter.json" ) );
+				v.push( CameleonCenterHelper.storagePath.resolvePath( "www/logger/logs/CameleonCenter.txt" ) );
+				v.push( CameleonCenterHelper.storagePath.resolvePath( "www/logger/logs/log.0" ) );
+				
+				var ffmpegLogFiles:Array = File.applicationStorageDirectory.getDirectoryListing();
+				var ffmpegLogFile:File;
+				
+				for ( var i:int = 0; i < ffmpegLogFiles.length; i++ ) {
+					
+					ffmpegLogFile = ffmpegLogFiles[i] as File;
+					if ( ffmpegLogFile.extension == "log" ) v.push( ffmpegLogFile );
+					
+				}
+				
+				if (saveLogToFile( f, v )) {
+					
+					le.level = Logger.LEVEL_INFO;
+					le.text = "Log saved to desktop";
+					
+				} else {
+					
+					le.level = Logger.LEVEL_ERROR;
+					le.text = "Error while saving log file";
+					
+				}
+				
+				
+				le.addChildObject( { text: s } );
+				Logger.addEntry( le );
+				
+				refresh();
+				
+			}
+			
+			public function saveLogToFile( file:File, fileList:Vector.<File> ):Boolean {
+				
+				try {
+					
+					//var s:String = com.adobe.serialization.json.JSON.encode( logs );
+					var zip:Zip = new Zip();
+					
+					for ( var i:int = 0; i < fileList.length; i++ ) {
+						
+						var fs:FileStream = new FileStream()
+						
+						try {
+							
+							fs.open( fileList[i], FileMode.READ );
+							var ba:ByteArray = new ByteArray();
+							fs.readBytes( ba );
+							fs.close();
+							zip.addFile( fileList[i].name, ba );
+							
+						} catch( e:Error ) {}
+						
+					}
+					
+					var finalZip:FileStream = new FileStream();
+					finalZip.open( file, FileMode.WRITE );
+					zip.serialize( finalZip );
+					finalZip.close();
+					
+					return true;
+					
+				} catch( e:Error ) {
+					
+					return false;
+					
+				}
+				
+				return false;
+				
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:BorderContainer id="logContainer" backgroundColor="#1A1B1E" borderVisible="false" width="100%" height="{ this.height - 40 }" includeInLayout="{ !htmlLog }" visible="{ !htmlLog }">
+		
+		<s:layout>
+			<s:VerticalLayout gap="0" padding="10" />
+		</s:layout>
+		
+		<s:TextArea fontFamily="_typewriter" width="100%" height="100%" id="logText" borderVisible="false" editable="false" selectable="false" horizontalScrollPolicy="off" />
+		
+	</s:BorderContainer>
+	
+	<s:HGroup width="{ this.width }" height="30" y="{ this.height - 40 }" includeInLayout="false" paddingLeft="10" paddingRight="10" gap="10">
+		
+		<views:ColoredButton height="30" width="80" label="Refresh" color="#3F424C" showIcon="false" showLabel="true" click="refresh()" includeInLayout="{ htmlLog }" visible="{ htmlLog }" />
+		<views:ColoredButton height="30" width="140" label="Save to desktop" color="#3F424C" showIcon="false" showLabel="true" click="saveLog()" />
+		
+	</s:HGroup>
+	
+</s:Window>

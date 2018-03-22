@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<views:PopupWindow
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+    xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+    xmlns:view="view.*"
+	width="900"
+	height="630"
+	minWidth="500"
+	minHeight="630"
+	destroyOnClose="true"
+	title="Facebook Login"
+	resize="onResize()" xmlns:views="live.cameleon.views.*"
+	>
+	
+	<fx:Declarations>
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+		
+		import flash.display.DisplayObject;
+		import flash.events.ErrorEvent;
+		import flash.events.Event;
+		import flash.events.LocationChangeEvent;
+		import flash.geom.Rectangle;
+		import flash.media.StageWebView;
+		import flash.net.URLVariables;
+		import live.cameleon.system.Os;
+		import settings.API;
+		
+		private var stageWebView:StageWebView;
+		
+		public var success:Boolean;
+		public var accessToken:String;
+		public var expiresIn:Number;
+		public var grantedScopes:Array;
+		public var deniedScopes:Array;
+		public var reauthorize:Boolean;
+		public var showHome:Boolean;
+		public var hasPublishActions:Boolean;
+		public var hasManagePages:Boolean;
+		public var hasPublishPages:Boolean;
+		
+		override public function show(prnt:DisplayObject):void 	{
+			
+			super.show(prnt);
+			prnt["enabled"] = false;
+			this.destroyOnClose = true;
+			
+			stageWebView = new StageWebView( Os.isMac );
+			stageWebView.stage = this.stage;
+			stageWebView.viewPort = new Rectangle( 0, 30, this.width, this.height - 30 );
+			stageWebView.addEventListener( Event.COMPLETE, webViewComplete );
+			stageWebView.addEventListener( LocationChangeEvent.LOCATION_CHANGE, webViewLocationChange );
+			stageWebView.addEventListener( ErrorEvent.ERROR, stageWebViewError );
+			
+			if ( showHome ) {
+				
+				stageWebView.loadURL( API.I.FACEBOOK_HOME );
+				
+			} else {
+				
+				( reauthorize ) ? stageWebView.loadURL( API.I.FACEBOOK_LOGIN_URI_REQUEST ) : stageWebView.loadURL( API.I.FACEBOOK_LOGIN_URI );
+				
+			}
+			
+		}
+		
+		private function stageWebViewError( e:ErrorEvent ):void {}
+		
+		private function webViewLocationChange( e:LocationChangeEvent ):void {
+			
+			addressInput.text = e.location;
+			
+		}
+		
+		override protected function closeWindow( e:Event ):void {
+			
+			parentObject["enabled"] = true;
+			this.removeAllElements();
+			super.closeWindow(e);
+			
+		}
+		
+		protected function onResize():void {
+			
+			if ( stageWebView ) {
+				
+				stageWebView.viewPort = new Rectangle( 0, 30, this.width, this.height - 30 );
+				
+			}
+			
+		}
+		
+		protected function webViewComplete( e:Event ):void {
+			
+			this.title = stageWebView.title;
+			trace( 'webViewComplete', stageWebView.location );
+			trace( 'webViewTitle', stageWebView.title );
+			
+			if ( stageWebView.location.search( API.I.FACEBOOK_REDIRECT_CHECK ) == 0 ) {
+				
+				// Facebook login sequence completed
+				success = true;
+				var params:String = stageWebView.location.split( API.I.FACEBOOK_REDIRECT_CHECK )[1];
+				//trace( params );
+				var vars:URLVariables = new URLVariables( params );
+				//trace( vars );
+				/*
+				trace( "access_token", vars.access_token );
+				trace( "expires_in", vars.expires_in );
+				trace( "granted_scopes", vars.granted_scopes );
+				trace( "denied_scopes", vars.denied_scopes );
+				*/
+				accessToken = vars.access_token;
+				expiresIn = Number( vars.expires_in );
+				grantedScopes = String( vars.granted_scopes ).split( "," );
+				deniedScopes = String( vars.denied_scopes ).split( "," );
+				if ( grantedScopes.indexOf( "publish_actions" ) > -1 ) hasPublishActions = true;
+				if ( grantedScopes.indexOf( "manage_pages" ) > -1 ) hasManagePages = true;
+				if ( grantedScopes.indexOf( "publish_pages" ) > -1 ) hasPublishPages = true;
+				trace( "accessToken", accessToken );
+				trace( "expiresIn", expiresIn );
+				trace( "grantedScopes", grantedScopes );
+				trace( "deniedScopes", deniedScopes );
+				trace( "hasPublishActions", hasPublishActions );
+				trace( "hasManagePages", hasManagePages );
+				trace( "hasPublishPages", hasPublishPages );
+				stageWebView.removeEventListener( Event.COMPLETE, webViewComplete );
+				stageWebView.removeEventListener( LocationChangeEvent.LOCATION_CHANGE, webViewLocationChange );
+				stageWebView.removeEventListener( ErrorEvent.ERROR, stageWebViewError );
+				stageWebView.dispose();
+				this.close();
+				
+			}
+			
+		}
+		
+		]]>
+	</fx:Script>
+	
+	<s:HGroup width="100%" height="30" gap="0">
+		<s:BorderContainer width="80" height="100%" borderVisible="false" backgroundColor="#197f45">
+			<s:layout>
+				<s:HorizontalLayout paddingLeft="10" verticalAlign="middle" gap="10" />
+			</s:layout>
+			<s:BitmapImage source='@Embed(source="../../../../assets/icon_lock.png")' scaleX=".5" scaleY=".5" />
+			<s:Label color="#ffffff" text="Secure" fontWeight="bold" />
+		</s:BorderContainer>
+		<s:TextInput width="100%" height="100%" editable="false" id="addressInput" text="https://" contentBackgroundColor="#dddddd" color="#333333" selectable="false" />
+	</s:HGroup>
+	
+	
+</views:PopupWindow>
