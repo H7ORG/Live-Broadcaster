@@ -5,6 +5,7 @@ Live Streaming Software for Mac and Windows built on Adobe AIR
 
 ### How to Buid? ###
 - get [Adobe Flash Builder](https://helpx.adobe.com/creative-cloud/kb/creative-cloud-apps-download.html) (optionally [Adobe Flash Builder 4.6 TRIAL](https://www.adobe.com/support/flex/downloads_updaters.html#flex4_6_trial))
+- Download Apache Flex SDK installer http://flex.apache.org/installer.html and install Apache Flex SDK 4.16.1 with AIR 28
 - install Java SE 6 for [Mac](https://support.apple.com/kb/DL1572?locale=en_US) or Windows
 - clone or download: https://github.com/H7ORG/Live-Broadcaster.git
 - edit `API.properties` and configure `build.properties`
