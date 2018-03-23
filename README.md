@@ -1,7 +1,11 @@
 # Live Broadcaster
 Live Streaming Software for Mac and Windows built on Adobe AIR
 
-[![Live Streaming Software](https://app.h7.org/cameleon/image/software/open-source_live-streaming-software.jpg "Live Broadcaster Software")](https://m.youtube.com/watch?v=tO3nz-MJ970)
+[![Live Streaming Software](https://app.h7.org/cameleon/image/software/open-source_live-streaming-software.jpg "Live Broadcaster Software")](https://youtube.com/watch?v=tO3nz-MJ970)
+
+### How to Use? ###
+
+- see [Live Streaming with Cameleon Live Broadcaster](https://youtube.com/watch?v=tO3nz-MJ970) (YouTube video)
 
 ### How to Build? ###
 - get [Adobe Flash Builder](https://helpx.adobe.com/creative-cloud/kb/creative-cloud-apps-download.html)
