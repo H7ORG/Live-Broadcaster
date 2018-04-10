@@ -26,7 +26,7 @@
   <flashCatalyst validateFlashCatalystCompatibility="false"/>
   <buildTargets>
     <buildTarget buildTargetName="default" platformId="default">
-      <airSettings airCertificatePath="/Users/yatko/Dev/certificates/h7/LiveBroadcaster.p12" airTimestamp="false" anePathSet="true" version="1">
+      <airSettings airCertificatePath="" airTimestamp="false" anePathSet="true" version="1">
         <airExcludes>
           <pathEntry path="org"/>
         </airExcludes>
