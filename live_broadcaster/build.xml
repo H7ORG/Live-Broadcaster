@@ -64,8 +64,8 @@ FLEX_HOME_MAC = mac/path/to/flex/sdk
 	<property name="AIR_NAME" value="${APP_NAME}"/>
 	<property name="STORETYPE" value="pkcs12"/>
 	<property name="PROVIDERNAME" value="Apple"/>
-	<property name="KEYSTORE" value="../builds/cert/SpycamDesktop.p12"/>
-	<property name="STOREPASS" value="SpycamIo12345"/>
+	<property name="KEYSTORE" value="../builds/cert/Certificate.p12"/>
+	<property name="STOREPASS" value="CERTIFICATE_PASSWORD_HERE"/>
 	<property name="DIST" value="../builds/dist/${OS_PATH}"/>
 	<property name="TEMPPKG" value="${DIST}/LiveBroadcasterSetupX.pkg"/>
 	<property name="FINALPKG" value="${DIST}/LiveBroadcasterSetup.pkg"/>
@@ -158,7 +158,7 @@ FLEX_HOME_MAC = mac/path/to/flex/sdk
 	<target name="signpackage.mac" if="${MAC}">
 		<exec executable="${PRODUCTSIGN}" failonerror="true">
 			<arg value="--sign"/>
-			<arg value="Developer ID Installer: YATKO LLC (XG4UMSAS7X)"/>
+			<arg value="FULL CERTIFICATE NAME WITH (ABCDE12345)"/>
 			<arg value="${TEMPPKG}"/>
 			<arg value="${FINALPKG}"/>
 		</exec>
@@ -167,7 +167,7 @@ FLEX_HOME_MAC = mac/path/to/flex/sdk
 	
 	<target name="package.win" if="${WINDOWS}">
 		<exec executable="${basedir}/${ISCC}">
-			<arg value="/smysigntool=${basedir}\..\builds\tools\iscc\signtool.exe sign /f ${basedir}\..\builds\cert\Yatko.pfx /p Yatko6654. $f"/>
+			<arg value="/smysigntool=${basedir}\..\builds\tools\iscc\signtool.exe sign /f ${basedir}\..\builds\cert\Certificate.pfx /p PFX_PASSWORD_HERE $f"/>
 			<arg value="${basedir}\..\builds\LiveBroadcaster.iss"/>
 		</exec>
 	</target>
@@ -176,7 +176,7 @@ FLEX_HOME_MAC = mac/path/to/flex/sdk
 	
 	<target name="info">
 		<echo message="Live Broadcaster Build Script" />
-		<echo message="(c) Yatko LLC, 2017" />
+		<echo message="(c) H7 LLC, 2017" />
 	</target>
 	
 	<!-- Target tasks -->
